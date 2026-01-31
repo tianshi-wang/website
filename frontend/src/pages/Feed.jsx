@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Feed() {
   const [questionnaires, setQuestionnaires] = useState([]);
@@ -8,20 +9,23 @@ export default function Feed() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const { token, user } = useAuth();
+  const { t, language } = useLanguage();
 
   const isAuthenticated = !!user;
 
   useEffect(() => {
     fetchQuestionnaires();
-  }, [token]);
+  }, [token, language]);
 
   const fetchQuestionnaires = async () => {
     try {
-      const endpoint = isAuthenticated ? '/api/questionnaires' : '/api/questionnaires/public';
+      const endpoint = isAuthenticated
+        ? `/api/questionnaires?language=${language}`
+        : `/api/questionnaires/public?language=${language}`;
       const headers = isAuthenticated ? { 'Authorization': `Bearer ${token}` } : {};
 
       const res = await fetch(endpoint, { headers });
-      if (!res.ok) throw new Error('Failed to fetch questionnaires');
+      if (!res.ok) throw new Error(t('errors.failedToFetch'));
       const data = await res.json();
       setQuestionnaires(data.questionnaires);
     } catch (err) {
@@ -38,103 +42,121 @@ export default function Feed() {
     return true;
   });
 
+  // Get first questionnaire for hero section
+  const featuredItem = filteredQuestionnaires[0];
+  const remainingItems = filteredQuestionnaires.slice(1);
+
   if (loading) {
     return (
       <div className="loading">
         <div className="loading-spinner"></div>
-        <p>Loading questionnaires...</p>
+        <p>{t('feed.loading')}</p>
       </div>
     );
   }
 
   return (
     <div className="container">
-      {!isAuthenticated && (
-        <div className="hero">
-          <h1>Welcome to Questionnaire App</h1>
-          <p>Discover and complete questionnaires on various topics. Sign up to track your progress and save your responses.</p>
-          <div className="hero-buttons">
-            <Link to="/register" className="btn btn-primary">Get Started</Link>
-            <Link to="/login" className="btn btn-outline">Sign In</Link>
+      {/* Hero/Featured Section */}
+      {featuredItem && (
+        <Link
+          to={isAuthenticated ? `/questionnaire/${featuredItem.id}` : `/login?redirect=/questionnaire/${featuredItem.id}`}
+          className="hero-link"
+        >
+          <div
+            className="hero"
+            style={featuredItem.image_url ? {
+              backgroundImage: `linear-gradient(180deg, transparent 0%, rgba(26, 31, 61, 0.7) 50%, var(--bg-primary) 100%), url(${featuredItem.image_url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            } : {}}
+          >
+            <h1>{featuredItem.title}</h1>
+            <p>{featuredItem.description || featuredItem.creator_email}</p>
+            {!isAuthenticated && (
+              <div className="hero-buttons">
+                <span className="btn btn-primary">{t('feed.startNow')}</span>
+              </div>
+            )}
           </div>
-        </div>
+        </Link>
       )}
 
-      <div className="questionnaire-header">
-        <h1>{isAuthenticated ? 'Your Questionnaires' : 'Browse Questionnaires'}</h1>
-        <p>{isAuthenticated ? 'Select a questionnaire to fill out' : 'Login to start taking questionnaires'}</p>
-      </div>
+      {/* Section Header */}
+      <h2 className="section-header">
+        {isAuthenticated ? t('feed.yourQuestionnaires') : t('feed.latest')}
+      </h2>
 
+      {/* Filter (for authenticated users) */}
       {isAuthenticated && (
         <div className="mb-10">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+            className="filter-select"
           >
-            <option value="all">All Questionnaires</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
+            <option value="all">{t('feed.filterAll')}</option>
+            <option value="pending">{t('feed.filterPending')}</option>
+            <option value="completed">{t('feed.filterCompleted')}</option>
           </select>
         </div>
       )}
 
       {error && <div className="error-message">{error}</div>}
 
-      {filteredQuestionnaires.length === 0 ? (
-        <div className="card">
-          <p className="text-center">No questionnaires found.</p>
+      {/* Tiles Grid */}
+      {remainingItems.length === 0 && !featuredItem ? (
+        <div className="card text-center">
+          <p>{t('feed.noQuestionnaires')}</p>
         </div>
       ) : (
-        filteredQuestionnaires.map(q => (
-          <div key={q.id} className="card">
-            <div className="flex justify-between">
-              <div>
-                <h3 className="card-title">{q.title}</h3>
-                {q.description && <p className="card-description">{q.description}</p>}
-                <p className="card-meta">Created by {q.creator_email}</p>
-                {q.question_count !== undefined && (
-                  <p className="question-count">{q.question_count} question{q.question_count !== 1 ? 's' : ''}</p>
-                )}
-              </div>
-              <div>
-                {isAuthenticated ? (
-                  q.completed > 0 ? (
-                    <>
-                      <span className="badge badge-success">Completed</span>
-                      <div className="mt-20">
-                        <Link to={`/summary/${q.id}`} className="btn btn-secondary">
-                          View Summary
-                        </Link>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <span className="badge badge-pending">Pending</span>
-                      <div className="mt-20">
-                        <Link to={`/questionnaire/${q.id}`} className="btn btn-primary">
-                          Start
-                        </Link>
-                      </div>
-                    </>
-                  )
+        <div className="tiles-grid">
+          {remainingItems.map(q => (
+            <Link
+              key={q.id}
+              to={isAuthenticated ? (q.completed > 0 ? `/summary/${q.id}` : `/questionnaire/${q.id}`) : `/login?redirect=/questionnaire/${q.id}`}
+              className="tile"
+            >
+              <div className="tile-image">
+                {q.image_url ? (
+                  <img src={q.image_url} alt={q.title} />
                 ) : (
-                  <>
-                    <span className="badge badge-info">Preview</span>
-                    <div className="mt-20">
-                      <Link
-                        to={`/login?redirect=/questionnaire/${q.id}`}
-                        className="btn btn-primary"
-                      >
-                        Login to Start
-                      </Link>
-                    </div>
-                  </>
+                  <div className="tile-placeholder">
+                    {q.title.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {isAuthenticated && (
+                  <span className={`tile-badge ${q.completed > 0 ? 'completed' : ''}`}>
+                    {q.completed > 0 ? t('feed.done') : t('feed.new')}
+                  </span>
                 )}
               </div>
+              <div className="tile-content">
+                <h3 className="tile-title">{q.title}</h3>
+                <p className="tile-description">
+                  {q.description || `${q.question_count || 0} ${t('feed.questions')}`}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Promo Banner (for non-authenticated users) */}
+      {!isAuthenticated && (
+        <div className="promo-banner">
+          <div className="promo-content">
+            <div className="promo-icon">👋</div>
+            <div className="promo-text">
+              <div className="promo-banner-title">{t('promo.joinUs')}</div>
+              <div className="promo-banner-subtitle">{t('promo.trackProgress')}</div>
             </div>
           </div>
-        ))
+          <div className="promo-buttons">
+            <Link to="/login" className="btn btn-outline">{t('auth.login')}</Link>
+            <Link to="/register" className="btn btn-primary">{t('auth.register')}</Link>
+          </div>
+        </div>
       )}
     </div>
   );

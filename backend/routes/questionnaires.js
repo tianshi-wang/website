@@ -7,13 +7,24 @@ const router = express.Router();
 // Get public questionnaires (no auth required)
 router.get('/public', (req, res) => {
   try {
-    const questionnaires = db.prepare(`
+    const { language } = req.query;
+
+    let query = `
       SELECT q.*, u.email as creator_email,
         (SELECT COUNT(*) FROM questions WHERE questionnaire_id = q.id) as question_count
       FROM questionnaires q
       JOIN users u ON q.created_by = u.id
-      ORDER BY q.created_at DESC
-    `).all();
+    `;
+
+    const params = [];
+    if (language) {
+      query += ' WHERE q.language = ?';
+      params.push(language);
+    }
+
+    query += ' ORDER BY q.created_at DESC';
+
+    const questionnaires = db.prepare(query).all(...params);
 
     res.json({ questionnaires });
   } catch (error) {
@@ -25,13 +36,24 @@ router.get('/public', (req, res) => {
 // Get all questionnaires (with completion status for current user)
 router.get('/', authenticateToken, (req, res) => {
   try {
-    const questionnaires = db.prepare(`
+    const { language } = req.query;
+
+    let query = `
       SELECT q.*, u.email as creator_email,
         (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id AND r.user_id = ?) as completed
       FROM questionnaires q
       JOIN users u ON q.created_by = u.id
-      ORDER BY q.created_at DESC
-    `).all(req.user.id);
+    `;
+
+    const params = [req.user.id];
+    if (language) {
+      query += ' WHERE q.language = ?';
+      params.push(language);
+    }
+
+    query += ' ORDER BY q.created_at DESC';
+
+    const questionnaires = db.prepare(query).all(...params);
 
     res.json({ questionnaires });
   } catch (error) {
@@ -93,7 +115,7 @@ router.get('/:id', authenticateToken, (req, res) => {
 // Create questionnaire (admin only)
 router.post('/', authenticateToken, requireAdmin, (req, res) => {
   try {
-    const { title, description, questions } = req.body;
+    const { title, description, image_url, language, questions } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -107,9 +129,9 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
     const createQuestionnaire = db.transaction(() => {
       // Create questionnaire
       const qResult = db.prepare(`
-        INSERT INTO questionnaires (title, description, created_by)
-        VALUES (?, ?, ?)
-      `).run(title, description || null, req.user.id);
+        INSERT INTO questionnaires (title, description, image_url, language, created_by)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(title, description || null, image_url || null, language || 'zh', req.user.id);
 
       const questionnaireId = qResult.lastInsertRowid;
 

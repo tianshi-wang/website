@@ -1,0 +1,291 @@
+export const translations = {
+  en: {
+    // Navigation
+    nav: {
+      home: 'Home',
+      search: 'Search',
+      profile: 'Profile',
+    },
+
+    // Feed page
+    feed: {
+      latest: 'Latest',
+      yourQuestionnaires: 'Your Questionnaires',
+      browseQuestionnaires: 'Browse Questionnaires',
+      selectToFillOut: 'Select a questionnaire to fill out',
+      loginToStart: 'Login to start taking questionnaires',
+      noQuestionnaires: 'No questionnaires found.',
+      startNow: 'Start Now',
+      loading: 'Loading questionnaires...',
+      filterAll: 'All Questionnaires',
+      filterPending: 'Pending',
+      filterCompleted: 'Completed',
+      done: 'Done',
+      new: 'New',
+      questions: 'questions',
+      question: 'question',
+    },
+
+    // Promo banner
+    promo: {
+      joinUs: 'Join Us',
+      signUpFree: 'Sign up for free',
+      trackProgress: 'Track your progress and save your answers',
+    },
+
+    // Auth
+    auth: {
+      login: 'Login',
+      logout: 'Log out',
+      register: 'Register',
+      alias: 'Alias',
+      aliasPlaceholder: 'Choose a display name',
+      email: 'Email',
+      emailPlaceholder: 'your@email.com',
+      emailHint: 'Without email, you cannot recover your account or view past answers',
+      optional: 'optional',
+      password: 'Password',
+      passwordHint: 'At least 6 characters',
+      confirmPassword: 'Confirm Password',
+      loggingIn: 'Logging in...',
+      registering: 'Registering...',
+      noAccount: "Don't have an account?",
+      haveAccount: 'Already have an account?',
+      loginToStart: 'Login to Start',
+      ageVerification: 'I confirm that I am 18 years or older',
+      loginWithAlias: 'Login with alias',
+      loginWithEmail: 'Login with email',
+    },
+
+    // Profile page
+    profile: {
+      title: 'Profile',
+      additional: 'Additional',
+      general: 'General',
+      rateApp: 'Rate app',
+      shareApp: 'Share the app',
+      helpSupport: 'Help & Support',
+      privacyPolicy: 'Privacy Policy',
+      termsConditions: 'Terms & Conditions',
+    },
+
+    // Admin
+    admin: {
+      dashboard: 'Dashboard',
+      createQuestionnaire: 'Create Questionnaire',
+      title: 'Title',
+      description: 'Description',
+      language: 'Language',
+      languageChinese: 'Chinese',
+      languageEnglish: 'English',
+      coverImage: 'Cover Image',
+      clickToUpload: 'Click to upload image',
+      uploading: 'Uploading...',
+      remove: 'Remove',
+      questions: 'Questions',
+      questionText: 'Question Text',
+      enterQuestion: 'Enter your question',
+      type: 'Type',
+      typeText: 'Text (Free input)',
+      typeSingle: 'Single Choice (Radio)',
+      typeMultiple: 'Multiple Choice (Checkbox)',
+      pageNumber: 'Page Number',
+      page: 'Page',
+      options: 'Options',
+      option: 'Option',
+      addOption: '+ Add Option',
+      addQuestion: '+ Add Question',
+      cancel: 'Cancel',
+      creating: 'Creating...',
+      create: 'Create Questionnaire',
+      required: 'required',
+      manualInput: 'Manual Input',
+      jsonImport: 'JSON Import',
+      jsonInput: 'JSON Data',
+      jsonPlaceholder: 'Paste your JSON here...',
+      jsonHint: 'Types: text, single_choice, multiple_choice',
+      loadExample: 'Load Example',
+    },
+
+    // Questionnaire page
+    questionnaire: {
+      typeAnswer: 'Type your answer here...',
+      previous: 'Previous',
+      next: 'Next',
+      submit: 'Submit',
+      submitting: 'Submitting...',
+      pageOf: 'Page {current} of {total}',
+    },
+
+    // Summary page
+    summary: {
+      title: 'Summary',
+      completed: 'Completed!',
+      yourAnswers: 'Your Answers',
+      backToFeed: 'Back to Feed',
+    },
+
+    // Errors
+    errors: {
+      titleRequired: 'Title is required',
+      atLeastOneQuestion: 'At least one question is required',
+      questionTextRequired: 'Question {num} text is required',
+      atLeastTwoOptions: 'Question {num} needs at least 2 options',
+      failedToFetch: 'Failed to fetch questionnaires',
+      failedToUpload: 'Failed to upload image',
+      selectImageFile: 'Please select an image file',
+      imageTooLarge: 'Image must be less than 5MB',
+      aliasRequired: 'Alias is required',
+      aliasLength: 'Alias must be between 2 and 30 characters',
+      ageVerificationRequired: 'You must confirm you are 18 years or older',
+      passwordLength: 'Password must be at least 6 characters',
+      passwordMismatch: 'Passwords do not match',
+      invalidJson: 'Invalid JSON format',
+    },
+  },
+
+  zh: {
+    // Navigation
+    nav: {
+      home: '首页',
+      search: '搜索',
+      profile: '我的',
+    },
+
+    // Feed page
+    feed: {
+      latest: '最新',
+      yourQuestionnaires: '我的问卷',
+      browseQuestionnaires: '浏览问卷',
+      selectToFillOut: '选择一个问卷来填写',
+      loginToStart: '登录后开始填写问卷',
+      noQuestionnaires: '暂无问卷',
+      startNow: '立即开始',
+      loading: '加载问卷中...',
+      filterAll: '全部问卷',
+      filterPending: '待完成',
+      filterCompleted: '已完成',
+      done: '已完成',
+      new: '新',
+      questions: '个问题',
+      question: '个问题',
+    },
+
+    // Promo banner
+    promo: {
+      joinUs: '加入我们',
+      signUpFree: '免费注册',
+      trackProgress: '追踪进度并保存您的答案',
+    },
+
+    // Auth
+    auth: {
+      login: '登录',
+      logout: '退出登录',
+      register: '注册',
+      alias: '昵称',
+      aliasPlaceholder: '选择一个显示名称',
+      email: '邮箱',
+      emailPlaceholder: 'your@email.com',
+      emailHint: '不填写邮箱将无法找回账号或查看历史答案',
+      optional: '选填',
+      password: '密码',
+      passwordHint: '至少6个字符',
+      confirmPassword: '确认密码',
+      loggingIn: '登录中...',
+      registering: '注册中...',
+      noAccount: '还没有账号？',
+      haveAccount: '已有账号？',
+      loginToStart: '登录开始',
+      ageVerification: '我确认已年满18周岁',
+      loginWithAlias: '使用昵称登录',
+      loginWithEmail: '使用邮箱登录',
+    },
+
+    // Profile page
+    profile: {
+      title: '个人资料',
+      additional: '其他',
+      general: '通用',
+      rateApp: '评价应用',
+      shareApp: '分享应用',
+      helpSupport: '帮助与支持',
+      privacyPolicy: '隐私政策',
+      termsConditions: '服务条款',
+    },
+
+    // Admin
+    admin: {
+      dashboard: '管理面板',
+      createQuestionnaire: '创建问卷',
+      title: '标题',
+      description: '描述',
+      language: '语言',
+      languageChinese: '中文',
+      languageEnglish: '英文',
+      coverImage: '封面图片',
+      clickToUpload: '点击上传图片',
+      uploading: '上传中...',
+      remove: '删除',
+      questions: '问题',
+      questionText: '问题内容',
+      enterQuestion: '输入您的问题',
+      type: '类型',
+      typeText: '文本（自由输入）',
+      typeSingle: '单选（单选按钮）',
+      typeMultiple: '多选（复选框）',
+      pageNumber: '页码',
+      page: '第 {num} 页',
+      options: '选项',
+      option: '选项',
+      addOption: '+ 添加选项',
+      addQuestion: '+ 添加问题',
+      cancel: '取消',
+      creating: '创建中...',
+      create: '创建问卷',
+      required: '必填',
+      manualInput: '手动输入',
+      jsonImport: 'JSON导入',
+      jsonInput: 'JSON数据',
+      jsonPlaceholder: '在此粘贴JSON...',
+      jsonHint: '类型: text(文本), single_choice(单选), multiple_choice(多选)',
+      loadExample: '加载示例',
+    },
+
+    // Questionnaire page
+    questionnaire: {
+      typeAnswer: '在此输入您的答案...',
+      previous: '上一页',
+      next: '下一页',
+      submit: '提交',
+      submitting: '提交中...',
+      pageOf: '第 {current} 页，共 {total} 页',
+    },
+
+    // Summary page
+    summary: {
+      title: '总结',
+      completed: '完成啦！',
+      yourAnswers: '您的答案',
+      backToFeed: '返回首页',
+    },
+
+    // Errors
+    errors: {
+      titleRequired: '标题为必填项',
+      atLeastOneQuestion: '至少需要一个问题',
+      questionTextRequired: '问题 {num} 内容为必填项',
+      atLeastTwoOptions: '问题 {num} 至少需要2个选项',
+      failedToFetch: '获取问卷失败',
+      failedToUpload: '上传图片失败',
+      selectImageFile: '请选择图片文件',
+      imageTooLarge: '图片大小不能超过5MB',
+      aliasRequired: '昵称为必填项',
+      aliasLength: '昵称长度需要在2到30个字符之间',
+      ageVerificationRequired: '您必须确认已年满18周岁',
+      passwordLength: '密码至少需要6个字符',
+      passwordMismatch: '两次输入的密码不一致',
+      invalidJson: 'JSON格式无效',
+    },
+  },
+};

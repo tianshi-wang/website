@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: questionnaire-app
+    env: node
+    rootDir: backend
+    buildCommand: npm install && cd ../frontend && npm install && npm run build && cp -r dist ../backend/public
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
