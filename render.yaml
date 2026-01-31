@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: questionnaire-app
+    name: tiaojiao
     env: node
     rootDir: backend
     buildCommand: npm install && cd ../frontend && npm install && npm run build && cp -r dist ../backend/public
