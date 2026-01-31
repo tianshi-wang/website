@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const questionnaireRoutes = require('./routes/questionnaires');
 const responseRoutes = require('./routes/responses');
 const uploadRoutes = require('./routes/upload');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/questionnaires', questionnaireRoutes);
 app.use('/api/responses', responseRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
