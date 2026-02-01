@@ -228,6 +228,14 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
         WHERE id = ?
       `).run(title, description || null, image_url || null, language || 'zh', questionnaireId);
 
+      // Delete answers that reference questions in this questionnaire
+      // (answers table doesn't have ON DELETE CASCADE for question_id)
+      await txDb.prepare(`
+        DELETE FROM answers WHERE question_id IN (
+          SELECT id FROM questions WHERE questionnaire_id = ?
+        )
+      `).run(questionnaireId);
+
       // Delete existing questions and options (cascade will delete options)
       await txDb.prepare('DELETE FROM questions WHERE questionnaire_id = ?').run(questionnaireId);
 
