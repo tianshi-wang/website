@@ -7,9 +7,14 @@ services:
   - type: web
     name: tiaojiao
     env: node
+    plan: starter
     rootDir: backend
     buildCommand: npm install && cd ../frontend && npm install --include=dev && npm run build && cp -r dist ../backend/public
     startCommand: npm start
+    disk:
+      name: uploads
+      mountPath: /data/uploads
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production

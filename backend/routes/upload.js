@@ -5,6 +5,11 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Use persistent disk path in production, local path in development
+const uploadsDir = process.env.NODE_ENV === 'production'
+  ? '/data/uploads'
+  : path.join(__dirname, '..', 'uploads');
+
 // Upload image (admin only)
 router.post('/image', authenticateToken, requireAdmin, (req, res) => {
   try {
@@ -26,7 +31,7 @@ router.post('/image', authenticateToken, requireAdmin, (req, res) => {
 
     // Generate unique filename
     const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
-    const filepath = path.join(__dirname, '..', 'uploads', filename);
+    const filepath = path.join(uploadsDir, filename);
 
     // Save file
     fs.writeFileSync(filepath, buffer);
@@ -46,7 +51,7 @@ router.post('/image', authenticateToken, requireAdmin, (req, res) => {
 router.delete('/image/:filename', authenticateToken, requireAdmin, (req, res) => {
   try {
     const { filename } = req.params;
-    const filepath = path.join(__dirname, '..', 'uploads', filename);
+    const filepath = path.join(uploadsDir, filename);
 
     if (fs.existsSync(filepath)) {
       fs.unlinkSync(filepath);
