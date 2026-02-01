@@ -155,7 +155,7 @@ export const translations = {
     // Feed page
     feed: {
       latest: '最新',
-      yourQuestionnaires: '我的问卷',
+      yourQuestionnaires: '调教档案',
       browseQuestionnaires: '浏览问卷',
       selectToFillOut: '选择一个问卷来填写',
       loginToStart: '登录后开始填写问卷',
