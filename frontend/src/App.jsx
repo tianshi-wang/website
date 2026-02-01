@@ -59,6 +59,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/edit/:id"
+          element={
+            <ProtectedRoute adminOnly>
+              <CreateQuestionnaire />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/" element={<Navigate to="/feed" replace />} />
         <Route path="*" element={<Navigate to="/feed" replace />} />
       </Routes>

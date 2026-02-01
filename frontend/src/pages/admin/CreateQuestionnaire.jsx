@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -30,6 +30,8 @@ const JSON_EXAMPLE = `{
 
 export default function CreateQuestionnaire() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = !!id;
   const { token } = useAuth();
   const { t, tf } = useLanguage();
   const fileInputRef = useRef(null);
@@ -47,6 +49,47 @@ export default function CreateQuestionnaire() {
   ]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loadingData, setLoadingData] = useState(isEditMode);
+
+  // Fetch questionnaire data when editing
+  useEffect(() => {
+    if (isEditMode) {
+      fetchQuestionnaire();
+    }
+  }, [id]);
+
+  const fetchQuestionnaire = async () => {
+    try {
+      const res = await fetch(`/api/questionnaires/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch questionnaire');
+      const data = await res.json();
+      const q = data.questionnaire;
+
+      setTitle(q.title);
+      setDescription(q.description || '');
+      setQuestionnaireLanguage(q.language || 'zh');
+      setImageUrl(q.image_url || '');
+      setImagePreview(q.image_url || '');
+
+      // Transform questions data
+      const transformedQuestions = q.questions.map(question => ({
+        text: question.text,
+        type: question.type,
+        page_number: question.page_number,
+        options: question.options ? question.options.map(opt => ({ text: opt.text })) : []
+      }));
+
+      setQuestions(transformedQuestions.length > 0 ? transformedQuestions : [
+        { text: '', type: 'text', page_number: 1, options: [] }
+      ]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -273,8 +316,11 @@ export default function CreateQuestionnaire() {
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/questionnaires', {
-        method: 'POST',
+      const url = isEditMode ? `/api/questionnaires/${id}` : '/api/questionnaires';
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -284,7 +330,7 @@ export default function CreateQuestionnaire() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to create questionnaire');
+        throw new Error(data.error || `Failed to ${isEditMode ? 'update' : 'create'} questionnaire`);
       }
 
       navigate('/admin');
@@ -297,9 +343,13 @@ export default function CreateQuestionnaire() {
 
   const maxPage = Math.max(...questions.map(q => q.page_number), 1);
 
+  if (loadingData) {
+    return <div className="loading">{t('admin.loadingQuestionnaire')}</div>;
+  }
+
   return (
     <div className="container">
-      <h1>{t('admin.createQuestionnaire')}</h1>
+      <h1>{isEditMode ? t('admin.editQuestionnaire') : t('admin.createQuestionnaire')}</h1>
 
       {/* Mode Toggle */}
       <div className="mode-toggle">
@@ -528,7 +578,10 @@ export default function CreateQuestionnaire() {
             {t('admin.cancel')}
           </button>
           <button type="submit" className="btn btn-success" disabled={submitting}>
-            {submitting ? t('admin.creating') : t('admin.create')}
+            {submitting
+              ? (isEditMode ? t('admin.updating') : t('admin.creating'))
+              : (isEditMode ? t('admin.update') : t('admin.create'))
+            }
           </button>
         </div>
       </form>

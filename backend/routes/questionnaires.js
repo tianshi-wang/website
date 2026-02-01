@@ -199,6 +199,81 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Update questionnaire (admin only)
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { title, description, image_url, language, questions } = req.body;
+    const questionnaireId = req.params.id;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    if (!questions || !questions.length) {
+      return res.status(400).json({ error: 'At least one question is required' });
+    }
+
+    // Check if questionnaire exists
+    const existing = await db.prepare('SELECT id FROM questionnaires WHERE id = ?').get(questionnaireId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Questionnaire not found' });
+    }
+
+    // Use transaction
+    const updateQuestionnaire = db.transaction(async (txDb) => {
+      // Update questionnaire
+      await txDb.prepare(`
+        UPDATE questionnaires
+        SET title = ?, description = ?, image_url = ?, language = ?
+        WHERE id = ?
+      `).run(title, description || null, image_url || null, language || 'zh', questionnaireId);
+
+      // Delete existing questions and options (cascade will delete options)
+      await txDb.prepare('DELETE FROM questions WHERE questionnaire_id = ?').run(questionnaireId);
+
+      // Create new questions and options
+      for (let idx = 0; idx < questions.length; idx++) {
+        const question = questions[idx];
+        const questionResult = await txDb.prepare(`
+          INSERT INTO questions (questionnaire_id, text, type, page_number, order_num)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(
+          questionnaireId,
+          question.text,
+          question.type,
+          question.page_number || 1,
+          question.order_num || idx
+        );
+
+        const questionId = questionResult.lastInsertRowid;
+
+        // Create options if choice question
+        if (question.type !== 'text' && question.options) {
+          for (let optIdx = 0; optIdx < question.options.length; optIdx++) {
+            const option = question.options[optIdx];
+            await txDb.prepare(`
+              INSERT INTO options (question_id, text, order_num)
+              VALUES (?, ?, ?)
+            `).run(questionId, option.text, option.order_num || optIdx);
+          }
+        }
+      }
+
+      return questionnaireId;
+    });
+
+    await updateQuestionnaire();
+
+    res.json({
+      message: 'Questionnaire updated',
+      questionnaireId
+    });
+  } catch (error) {
+    console.error('Update questionnaire error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Delete questionnaire (admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {

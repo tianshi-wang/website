@@ -76,6 +76,9 @@ export default function Dashboard() {
                   <Link to={`/questionnaire/${q.id}`} className="btn btn-secondary">
                     Preview
                   </Link>
+                  <Link to={`/admin/edit/${q.id}`} className="btn btn-primary">
+                    Edit
+                  </Link>
                   <button
                     onClick={() => handleDelete(q.id)}
                     className="btn btn-danger"
