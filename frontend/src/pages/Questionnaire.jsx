@@ -52,14 +52,17 @@ export default function Questionnaire() {
   // Check if all questions on current page are answered
   const isCurrentPageComplete = () => {
     const pageQuestions = getCurrentPageQuestions();
+    if (pageQuestions.length === 0) return true;
+
     return pageQuestions.every(q => {
-      const answer = answers[q.id];
+      // Use string key to match how answers are stored
+      const answer = answers[q.id] || answers[String(q.id)];
       if (q.type === 'text') {
-        return answer && answer.trim().length > 0;
+        return answer && String(answer).trim().length > 0;
       } else if (q.type === 'single_choice') {
-        return answer && answer.length > 0;
+        return answer && String(answer).length > 0;
       } else if (q.type === 'multiple_choice') {
-        return answer && answer.length > 0;
+        return Array.isArray(answer) && answer.length > 0;
       }
       return false;
     });
