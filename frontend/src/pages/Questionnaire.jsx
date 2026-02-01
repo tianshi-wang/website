@@ -49,6 +49,31 @@ export default function Questionnaire() {
     return questionnaire.questions.filter(q => q.page_number === currentPage);
   };
 
+  // Check if all questions on current page are answered
+  const isCurrentPageComplete = () => {
+    const pageQuestions = getCurrentPageQuestions();
+    return pageQuestions.every(q => {
+      const answer = answers[q.id];
+      if (q.type === 'text') {
+        return answer && answer.trim().length > 0;
+      } else if (q.type === 'single_choice') {
+        return answer && answer.length > 0;
+      } else if (q.type === 'multiple_choice') {
+        return answer && answer.length > 0;
+      }
+      return false;
+    });
+  };
+
+  const handleNextPage = () => {
+    if (!isCurrentPageComplete()) {
+      setError(language === 'zh' ? '请回答本页所有问题后再继续' : 'Please answer all questions on this page before continuing');
+      return;
+    }
+    setError('');
+    setCurrentPage(p => p + 1);
+  };
+
   const handleTextAnswer = (questionId, value) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
@@ -69,6 +94,10 @@ export default function Questionnaire() {
   };
 
   const handleSubmit = async () => {
+    if (!isCurrentPageComplete()) {
+      setError(language === 'zh' ? '请回答本页所有问题后再提交' : 'Please answer all questions on this page before submitting');
+      return;
+    }
     setSubmitting(true);
     setError('');
 
@@ -240,7 +269,7 @@ export default function Questionnaire() {
         ) : (
           <button
             className="btn btn-primary"
-            onClick={() => setCurrentPage(p => p + 1)}
+            onClick={handleNextPage}
           >
             {t('questionnaire.next')}
           </button>
