@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Submit questionnaire response
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { questionnaire_id, answers } = req.body;
 
@@ -18,7 +18,7 @@ router.post('/', authenticateToken, (req, res) => {
     }
 
     // Check if questionnaire exists
-    const questionnaire = db.prepare('SELECT id FROM questionnaires WHERE id = ?')
+    const questionnaire = await db.prepare('SELECT id FROM questionnaires WHERE id = ?')
       .get(questionnaire_id);
 
     if (!questionnaire) {
@@ -26,7 +26,7 @@ router.post('/', authenticateToken, (req, res) => {
     }
 
     // Check if user already responded
-    const existing = db.prepare(`
+    const existing = await db.prepare(`
       SELECT id FROM responses
       WHERE user_id = ? AND questionnaire_id = ?
     `).get(req.user.id, questionnaire_id);
@@ -36,8 +36,8 @@ router.post('/', authenticateToken, (req, res) => {
     }
 
     // Create response and answers in transaction
-    const submitResponse = db.transaction(() => {
-      const responseResult = db.prepare(`
+    const submitResponse = db.transaction(async (txDb) => {
+      const responseResult = await txDb.prepare(`
         INSERT INTO responses (user_id, questionnaire_id)
         VALUES (?, ?)
       `).run(req.user.id, questionnaire_id);
@@ -47,21 +47,22 @@ router.post('/', authenticateToken, (req, res) => {
       // Insert answers
       // answers is an object { questionId: answerText }
       // For multiple choice, answerText can be JSON array
-      Object.entries(answers).forEach(([questionId, answerText]) => {
+      const entries = Object.entries(answers);
+      for (const [questionId, answerText] of entries) {
         const answer = typeof answerText === 'object'
           ? JSON.stringify(answerText)
           : answerText;
 
-        db.prepare(`
+        await txDb.prepare(`
           INSERT INTO answers (response_id, question_id, answer_text)
           VALUES (?, ?, ?)
         `).run(responseId, questionId, answer);
-      });
+      }
 
       return responseId;
     });
 
-    const responseId = submitResponse();
+    const responseId = await submitResponse();
 
     res.status(201).json({
       message: 'Response submitted',
@@ -74,12 +75,12 @@ router.post('/', authenticateToken, (req, res) => {
 });
 
 // Get user's response to a questionnaire (for summary page)
-router.get('/questionnaire/:questionnaireId', authenticateToken, (req, res) => {
+router.get('/questionnaire/:questionnaireId', authenticateToken, async (req, res) => {
   try {
     const { questionnaireId } = req.params;
 
     // Get the response
-    const response = db.prepare(`
+    const response = await db.prepare(`
       SELECT * FROM responses
       WHERE user_id = ? AND questionnaire_id = ?
     `).get(req.user.id, questionnaireId);
@@ -89,12 +90,12 @@ router.get('/questionnaire/:questionnaireId', authenticateToken, (req, res) => {
     }
 
     // Get questionnaire info
-    const questionnaire = db.prepare(`
+    const questionnaire = await db.prepare(`
       SELECT * FROM questionnaires WHERE id = ?
     `).get(questionnaireId);
 
     // Get questions with answers
-    const questions = db.prepare(`
+    const questions = await db.prepare(`
       SELECT q.*, a.answer_text
       FROM questions q
       LEFT JOIN answers a ON a.question_id = q.id AND a.response_id = ?
@@ -103,9 +104,9 @@ router.get('/questionnaire/:questionnaireId', authenticateToken, (req, res) => {
     `).all(response.id, questionnaireId);
 
     // Get options for choice questions
-    const questionsWithOptions = questions.map(q => {
+    const questionsWithOptions = await Promise.all(questions.map(async (q) => {
       if (q.type !== 'text') {
-        const options = db.prepare(`
+        const options = await db.prepare(`
           SELECT * FROM options
           WHERE question_id = ?
           ORDER BY order_num
@@ -113,7 +114,7 @@ router.get('/questionnaire/:questionnaireId', authenticateToken, (req, res) => {
         return { ...q, options };
       }
       return { ...q, options: [] };
-    });
+    }));
 
     res.json({
       response: {
@@ -129,7 +130,7 @@ router.get('/questionnaire/:questionnaireId', authenticateToken, (req, res) => {
 });
 
 // Get all responses for a questionnaire (admin only)
-router.get('/admin/questionnaire/:questionnaireId', authenticateToken, (req, res) => {
+router.get('/admin/questionnaire/:questionnaireId', authenticateToken, async (req, res) => {
   try {
     if (!req.user.is_admin) {
       return res.status(403).json({ error: 'Admin access required' });
@@ -137,7 +138,7 @@ router.get('/admin/questionnaire/:questionnaireId', authenticateToken, (req, res
 
     const { questionnaireId } = req.params;
 
-    const responses = db.prepare(`
+    const responses = await db.prepare(`
       SELECT r.*, u.email as user_email
       FROM responses r
       JOIN users u ON r.user_id = u.id
@@ -146,8 +147,8 @@ router.get('/admin/questionnaire/:questionnaireId', authenticateToken, (req, res
     `).all(questionnaireId);
 
     // Get answers for each response
-    const responsesWithAnswers = responses.map(r => {
-      const answers = db.prepare(`
+    const responsesWithAnswers = await Promise.all(responses.map(async (r) => {
+      const answers = await db.prepare(`
         SELECT a.*, q.text as question_text, q.type as question_type
         FROM answers a
         JOIN questions q ON a.question_id = q.id
@@ -155,7 +156,7 @@ router.get('/admin/questionnaire/:questionnaireId', authenticateToken, (req, res
         ORDER BY q.page_number, q.order_num
       `).all(r.id);
       return { ...r, answers };
-    });
+    }));
 
     res.json({ responses: responsesWithAnswers });
   } catch (error) {

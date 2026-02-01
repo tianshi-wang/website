@@ -27,7 +27,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if alias already exists
-    const existingAlias = db.prepare('SELECT id FROM users WHERE alias = ?').get(alias);
+    const existingAlias = await db.prepare('SELECT id FROM users WHERE alias = ?').get(alias);
     if (existingAlias) {
       return res.status(400).json({ error: 'Alias already taken' });
     }
@@ -39,7 +39,7 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ error: 'Invalid email format' });
       }
       // Check if email already exists
-      const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+      const existingEmail = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
       if (existingEmail) {
         return res.status(400).json({ error: 'Email already registered' });
       }
@@ -54,10 +54,10 @@ router.post('/register', async (req, res) => {
     // Generate a unique placeholder email if none provided (database requires non-null)
     const userEmail = email || `guest_${Date.now()}_${Math.random().toString(36).substring(2, 8)}@noemail.local`;
     const hash = await bcrypt.hash(password, 10);
-    const result = db.prepare('INSERT INTO users (email, password_hash, alias, age_verified) VALUES (?, ?, ?, ?)')
+    const result = await db.prepare('INSERT INTO users (email, password_hash, alias, age_verified) VALUES (?, ?, ?, ?)')
       .run(userEmail, hash, alias, 1);
 
-    const user = db.prepare('SELECT id, email, alias, is_admin, created_at FROM users WHERE id = ?')
+    const user = await db.prepare('SELECT id, email, alias, is_admin, created_at FROM users WHERE id = ?')
       .get(result.lastInsertRowid);
 
     // Generate token
@@ -86,9 +86,9 @@ router.post('/login', async (req, res) => {
     // Find user by email or alias
     let user;
     if (email) {
-      user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+      user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     } else {
-      user = db.prepare('SELECT * FROM users WHERE alias = ?').get(alias);
+      user = await db.prepare('SELECT * FROM users WHERE alias = ?').get(alias);
     }
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -124,8 +124,8 @@ router.post('/login', async (req, res) => {
 });
 
 // Get current user
-router.get('/me', authenticateToken, (req, res) => {
-  const user = db.prepare('SELECT id, email, alias, is_admin, created_at FROM users WHERE id = ?')
+router.get('/me', authenticateToken, async (req, res) => {
+  const user = await db.prepare('SELECT id, email, alias, is_admin, created_at FROM users WHERE id = ?')
     .get(req.user.id);
 
   if (!user) {

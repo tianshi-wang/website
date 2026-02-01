@@ -1,227 +1,207 @@
-const initSqlJs = require('sql.js');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const fs = require('fs');
-const path = require('path');
 
-const DB_PATH = path.join(__dirname, 'questionnaire.db');
+// Use DATABASE_URL from environment, or local connection
+const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/questionnaire';
 
-let db = null;
-let SQL = null;
+const pool = new Pool({
+  connectionString,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
 
-// Wrapper to provide better-sqlite3 compatible API
-function createStatement(database, sql) {
+// Helper to convert ? placeholders to $1, $2, etc.
+function convertPlaceholders(sql) {
+  let index = 0;
+  return sql.replace(/\?/g, () => `$${++index}`);
+}
+
+// Helper to convert SQLite datetime('now') to PostgreSQL
+function convertSqlSyntax(sql) {
+  return sql
+    .replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP')
+    .replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY')
+    .replace(/AUTOINCREMENT/gi, '')
+    .replace(/INTEGER DEFAULT 0/gi, 'INTEGER DEFAULT 0')
+    .replace(/INTEGER DEFAULT 1/gi, 'INTEGER DEFAULT 1');
+}
+
+// Create a statement-like object that mimics the SQLite API
+function createStatement(sql) {
+  const pgSql = convertPlaceholders(convertSqlSyntax(sql));
+
   return {
-    get(...params) {
-      const stmt = database.prepare(sql);
-      if (params.length > 0) {
-        stmt.bind(params);
-      }
-      if (stmt.step()) {
-        const result = stmt.getAsObject();
-        stmt.free();
-        return result;
-      }
-      stmt.free();
-      return undefined;
+    async get(...params) {
+      const result = await pool.query(pgSql, params);
+      return result.rows[0];
     },
-    all(...params) {
-      const results = [];
-      const stmt = database.prepare(sql);
-      if (params.length > 0) {
-        stmt.bind(params);
-      }
-      while (stmt.step()) {
-        results.push(stmt.getAsObject());
-      }
-      stmt.free();
-      return results;
+    async all(...params) {
+      const result = await pool.query(pgSql, params);
+      return result.rows;
     },
-    run(...params) {
-      const stmt = database.prepare(sql);
-      if (params.length > 0) {
-        stmt.bind(params);
+    async run(...params) {
+      // For INSERT statements, try to get the returning id
+      let modifiedSql = pgSql;
+      const isInsert = /^\s*INSERT/i.test(sql);
+
+      if (isInsert && !/RETURNING/i.test(pgSql)) {
+        modifiedSql = pgSql + ' RETURNING id';
       }
-      stmt.step();
-      stmt.free();
+
+      const result = await pool.query(modifiedSql, params);
       return {
-        lastInsertRowid: database.exec("SELECT last_insert_rowid()")[0]?.values[0][0],
-        changes: database.getRowsModified()
+        lastInsertRowid: result.rows[0]?.id,
+        changes: result.rowCount
       };
     }
   };
 }
 
-// Database wrapper with better-sqlite3 compatible API
-function createDbWrapper(database) {
-  return {
-    prepare(sql) {
-      return createStatement(database, sql);
-    },
-    exec(sql) {
-      database.exec(sql);
-    },
-    pragma(pragma) {
-      database.exec(`PRAGMA ${pragma}`);
-    },
-    transaction(fn) {
-      return (...args) => {
-        database.exec('BEGIN TRANSACTION');
-        try {
-          const result = fn(...args);
-          database.exec('COMMIT');
-          return result;
-        } catch (error) {
-          database.exec('ROLLBACK');
-          throw error;
-        }
-      };
-    },
-    close() {
-      const data = database.export();
-      const buffer = Buffer.from(data);
-      fs.writeFileSync(DB_PATH, buffer);
-      database.close();
-    },
-    save() {
-      const data = database.export();
-      const buffer = Buffer.from(data);
-      fs.writeFileSync(DB_PATH, buffer);
-    },
-    _raw: database
-  };
-}
+// Database wrapper with SQLite-compatible API (but async)
+const db = {
+  prepare(sql) {
+    return createStatement(sql);
+  },
+
+  async exec(sql) {
+    const pgSql = convertSqlSyntax(sql);
+    await pool.query(pgSql);
+  },
+
+  async pragma(pragma) {
+    // PostgreSQL doesn't use pragmas, ignore silently
+  },
+
+  transaction(fn) {
+    // Return an async function that wraps the transaction
+    return async (...args) => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        // Create a transaction-specific db object
+        const txDb = {
+          prepare(sql) {
+            const pgSql = convertPlaceholders(convertSqlSyntax(sql));
+            return {
+              async get(...params) {
+                const result = await client.query(pgSql, params);
+                return result.rows[0];
+              },
+              async all(...params) {
+                const result = await client.query(pgSql, params);
+                return result.rows;
+              },
+              async run(...params) {
+                let modifiedSql = pgSql;
+                const isInsert = /^\s*INSERT/i.test(sql);
+
+                if (isInsert && !/RETURNING/i.test(pgSql)) {
+                  modifiedSql = pgSql + ' RETURNING id';
+                }
+
+                const result = await client.query(modifiedSql, params);
+                return {
+                  lastInsertRowid: result.rows[0]?.id,
+                  changes: result.rowCount
+                };
+              }
+            };
+          }
+        };
+
+        const result = await fn(txDb, ...args);
+        await client.query('COMMIT');
+        return result;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    };
+  },
+
+  async close() {
+    await pool.end();
+  },
+
+  save() {
+    // No-op for PostgreSQL (auto-persisted)
+  },
+
+  // Expose pool for advanced usage
+  pool
+};
 
 async function initDatabase() {
-  if (db) return db;
-
-  SQL = await initSqlJs();
-
-  // Load existing database or create new one
-  let database;
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    database = new SQL.Database(fileBuffer);
-  } else {
-    database = new SQL.Database();
-  }
-
-  db = createDbWrapper(database);
-
-  // Enable foreign keys
-  db.pragma('foreign_keys = ON');
-
   // Create tables
-  db.exec(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      alias TEXT,
       is_admin INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
+      age_verified INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS questionnaires (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT,
       image_url TEXT,
       language TEXT DEFAULT 'zh',
-      created_by INTEGER NOT NULL,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (created_by) REFERENCES users(id)
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS questions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      questionnaire_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      questionnaire_id INTEGER NOT NULL REFERENCES questionnaires(id) ON DELETE CASCADE,
       text TEXT NOT NULL,
       type TEXT NOT NULL CHECK(type IN ('text', 'single_choice', 'multiple_choice')),
       page_number INTEGER NOT NULL DEFAULT 1,
-      order_num INTEGER NOT NULL DEFAULT 0,
-      FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE CASCADE
+      order_num INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS options (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      question_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
       text TEXT NOT NULL,
-      order_num INTEGER NOT NULL DEFAULT 0,
-      FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+      order_num INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS responses (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      questionnaire_id INTEGER NOT NULL,
-      completed_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id),
-      FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id)
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      questionnaire_id INTEGER NOT NULL REFERENCES questionnaires(id),
+      completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS answers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      response_id INTEGER NOT NULL,
-      question_id INTEGER NOT NULL,
-      answer_text TEXT,
-      FOREIGN KEY (response_id) REFERENCES responses(id) ON DELETE CASCADE,
-      FOREIGN KEY (question_id) REFERENCES questions(id)
+      id SERIAL PRIMARY KEY,
+      response_id INTEGER NOT NULL REFERENCES responses(id) ON DELETE CASCADE,
+      question_id INTEGER NOT NULL REFERENCES questions(id),
+      answer_text TEXT
     );
   `);
 
-  // Migration: Add image_url column if it doesn't exist
-  try {
-    db.prepare('SELECT image_url FROM questionnaires LIMIT 1').get();
-  } catch (e) {
-    db.exec('ALTER TABLE questionnaires ADD COLUMN image_url TEXT');
-  }
-
-  // Migration: Add language column if it doesn't exist
-  try {
-    db.prepare('SELECT language FROM questionnaires LIMIT 1').get();
-  } catch (e) {
-    db.exec("ALTER TABLE questionnaires ADD COLUMN language TEXT DEFAULT 'zh'");
-  }
-
-  // Migration: Add alias column to users if it doesn't exist
-  try {
-    db.prepare('SELECT alias FROM users LIMIT 1').get();
-  } catch (e) {
-    db.exec("ALTER TABLE users ADD COLUMN alias TEXT");
-  }
-
-  // Migration: Add age_verified column to users if it doesn't exist
-  try {
-    db.prepare('SELECT age_verified FROM users LIMIT 1').get();
-  } catch (e) {
-    db.exec("ALTER TABLE users ADD COLUMN age_verified INTEGER DEFAULT 0");
-  }
-
-  // Save after creating tables
-  db.save();
-
+  console.log('PostgreSQL database initialized');
   return db;
 }
 
 // Seed admin user if not exists
 async function seedAdmin() {
-  const admin = db.prepare('SELECT * FROM users WHERE email = ?').get('admin@example.com');
-  if (!admin) {
+  const result = await pool.query('SELECT * FROM users WHERE email = $1', ['admin@example.com']);
+  if (result.rows.length === 0) {
     const hash = await bcrypt.hash('admin123', 10);
-    db.prepare('INSERT INTO users (email, password_hash, is_admin) VALUES (?, ?, 1)')
-      .run('admin@example.com', hash);
-    db.save();
+    await pool.query(
+      'INSERT INTO users (email, password_hash, is_admin) VALUES ($1, $2, 1)',
+      ['admin@example.com', hash]
+    );
     console.log('Admin user created: admin@example.com / admin123');
   }
 }
 
-// Proxy that ensures db is initialized before use
-const dbProxy = new Proxy({}, {
-  get(target, prop) {
-    if (!db) {
-      throw new Error('Database not initialized. Call initDatabase() first.');
-    }
-    return db[prop];
-  }
-});
-
-module.exports = { db: dbProxy, initDatabase, seedAdmin };
+module.exports = { db, initDatabase, seedAdmin };

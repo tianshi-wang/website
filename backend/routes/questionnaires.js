@@ -5,7 +5,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 // Get public questionnaires (no auth required)
-router.get('/public', (req, res) => {
+router.get('/public', async (req, res) => {
   try {
     const { language } = req.query;
 
@@ -24,7 +24,7 @@ router.get('/public', (req, res) => {
 
     query += ' ORDER BY q.created_at DESC';
 
-    const questionnaires = db.prepare(query).all(...params);
+    const questionnaires = await db.prepare(query).all(...params);
 
     res.json({ questionnaires });
   } catch (error) {
@@ -34,7 +34,7 @@ router.get('/public', (req, res) => {
 });
 
 // Get all questionnaires (with completion status for current user)
-router.get('/', authenticateToken, (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const { language } = req.query;
 
@@ -53,7 +53,7 @@ router.get('/', authenticateToken, (req, res) => {
 
     query += ' ORDER BY q.created_at DESC';
 
-    const questionnaires = db.prepare(query).all(...params);
+    const questionnaires = await db.prepare(query).all(...params);
 
     res.json({ questionnaires });
   } catch (error) {
@@ -63,9 +63,9 @@ router.get('/', authenticateToken, (req, res) => {
 });
 
 // Get single questionnaire with questions and options
-router.get('/:id', authenticateToken, (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const questionnaire = db.prepare(`
+    const questionnaire = await db.prepare(`
       SELECT q.*, u.email as creator_email
       FROM questionnaires q
       JOIN users u ON q.created_by = u.id
@@ -77,16 +77,16 @@ router.get('/:id', authenticateToken, (req, res) => {
     }
 
     // Get questions
-    const questions = db.prepare(`
+    const questions = await db.prepare(`
       SELECT * FROM questions
       WHERE questionnaire_id = ?
       ORDER BY page_number, order_num
     `).all(req.params.id);
 
     // Get options for each question
-    const questionsWithOptions = questions.map(q => {
+    const questionsWithOptions = await Promise.all(questions.map(async (q) => {
       if (q.type !== 'text') {
-        const options = db.prepare(`
+        const options = await db.prepare(`
           SELECT * FROM options
           WHERE question_id = ?
           ORDER BY order_num
@@ -94,7 +94,7 @@ router.get('/:id', authenticateToken, (req, res) => {
         return { ...q, options };
       }
       return { ...q, options: [] };
-    });
+    }));
 
     // Get max page number
     const maxPage = questions.reduce((max, q) => Math.max(max, q.page_number), 1);
@@ -113,7 +113,7 @@ router.get('/:id', authenticateToken, (req, res) => {
 });
 
 // Create questionnaire (admin only)
-router.post('/', authenticateToken, requireAdmin, (req, res) => {
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { title, description, image_url, language, questions } = req.body;
 
@@ -125,10 +125,10 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'At least one question is required' });
     }
 
-    // Start transaction
-    const createQuestionnaire = db.transaction(() => {
+    // Use transaction
+    const createQuestionnaire = db.transaction(async (txDb) => {
       // Create questionnaire
-      const qResult = db.prepare(`
+      const qResult = await txDb.prepare(`
         INSERT INTO questionnaires (title, description, image_url, language, created_by)
         VALUES (?, ?, ?, ?, ?)
       `).run(title, description || null, image_url || null, language || 'zh', req.user.id);
@@ -136,8 +136,9 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
       const questionnaireId = qResult.lastInsertRowid;
 
       // Create questions and options
-      questions.forEach((question, idx) => {
-        const questionResult = db.prepare(`
+      for (let idx = 0; idx < questions.length; idx++) {
+        const question = questions[idx];
+        const questionResult = await txDb.prepare(`
           INSERT INTO questions (questionnaire_id, text, type, page_number, order_num)
           VALUES (?, ?, ?, ?, ?)
         `).run(
@@ -152,19 +153,20 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
 
         // Create options if choice question
         if (question.type !== 'text' && question.options) {
-          question.options.forEach((option, optIdx) => {
-            db.prepare(`
+          for (let optIdx = 0; optIdx < question.options.length; optIdx++) {
+            const option = question.options[optIdx];
+            await txDb.prepare(`
               INSERT INTO options (question_id, text, order_num)
               VALUES (?, ?, ?)
             `).run(questionId, option.text, option.order_num || optIdx);
-          });
+          }
         }
-      });
+      }
 
       return questionnaireId;
     });
 
-    const questionnaireId = createQuestionnaire();
+    const questionnaireId = await createQuestionnaire();
 
     res.status(201).json({
       message: 'Questionnaire created',
@@ -177,9 +179,9 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Delete questionnaire (admin only)
-router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM questionnaires WHERE id = ?')
+    const result = await db.prepare('DELETE FROM questionnaires WHERE id = ?')
       .run(req.params.id);
 
     if (result.changes === 0) {
