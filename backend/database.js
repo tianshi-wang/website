@@ -174,8 +174,10 @@ async function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS responses (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
+      user_id INTEGER REFERENCES users(id),
       questionnaire_id INTEGER NOT NULL REFERENCES questionnaires(id),
+      guest_alias TEXT,
+      share_token TEXT UNIQUE,
       completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -186,6 +188,28 @@ async function initDatabase() {
       answer_text TEXT
     );
   `);
+
+  // Migration: Add share_token and guest_alias columns if they don't exist
+  try {
+    await pool.query('SELECT share_token FROM responses LIMIT 1');
+  } catch (e) {
+    await pool.query('ALTER TABLE responses ADD COLUMN share_token TEXT UNIQUE');
+    console.log('Added share_token column to responses');
+  }
+
+  try {
+    await pool.query('SELECT guest_alias FROM responses LIMIT 1');
+  } catch (e) {
+    await pool.query('ALTER TABLE responses ADD COLUMN guest_alias TEXT');
+    console.log('Added guest_alias column to responses');
+  }
+
+  // Make user_id nullable if it's not already
+  try {
+    await pool.query('ALTER TABLE responses ALTER COLUMN user_id DROP NOT NULL');
+  } catch (e) {
+    // Column is already nullable or doesn't exist
+  }
 
   console.log('PostgreSQL database initialized');
   return db;

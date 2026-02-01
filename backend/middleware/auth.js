@@ -26,4 +26,24 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { authenticateToken, requireAdmin, JWT_SECRET };
+// Optional authentication - doesn't fail if no token, but populates req.user if valid token present
+function optionalAuth(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      req.user = null;
+    } else {
+      req.user = user;
+    }
+    next();
+  });
+}
+
+module.exports = { authenticateToken, requireAdmin, optionalAuth, JWT_SECRET };

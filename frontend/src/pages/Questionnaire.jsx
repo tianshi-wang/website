@@ -6,8 +6,8 @@ import { useLanguage } from '../context/LanguageContext';
 export default function Questionnaire() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
-  const { t, tf } = useLanguage();
+  const { token, user } = useAuth();
+  const { t, tf, language } = useLanguage();
 
   const [questionnaire, setQuestionnaire] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -15,6 +15,9 @@ export default function Questionnaire() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [guestAlias, setGuestAlias] = useState('');
+
+  const isGuest = !user;
 
   useEffect(() => {
     fetchQuestionnaire();
@@ -22,10 +25,16 @@ export default function Questionnaire() {
 
   const fetchQuestionnaire = async () => {
     try {
-      const res = await fetch(`/api/questionnaires/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error(t('errors.failedToFetch'));
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`/api/questionnaires/${id}`, { headers });
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Need to login for this questionnaire
+          navigate(`/login?redirect=/questionnaire/${id}`);
+          return;
+        }
+        throw new Error(t('errors.failedToFetch'));
+      }
       const data = await res.json();
       setQuestionnaire(data.questionnaire);
     } catch (err) {
@@ -64,15 +73,20 @@ export default function Questionnaire() {
     setError('');
 
     try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch('/api/responses', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           questionnaire_id: id,
-          answers
+          answers,
+          guest_alias: isGuest ? (guestAlias || 'Anonymous') : undefined
         })
       });
 
@@ -81,7 +95,14 @@ export default function Questionnaire() {
         throw new Error(data.error || 'Failed to submit');
       }
 
-      navigate(`/summary/${id}`);
+      const data = await res.json();
+
+      // For guests, navigate to shared summary with the share token
+      if (isGuest) {
+        navigate(`/shared/${data.shareToken}`);
+      } else {
+        navigate(`/summary/${id}`);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -112,6 +133,30 @@ export default function Questionnaire() {
           <p className="detail-header-tags">{questionnaire.description}</p>
         )}
       </div>
+
+      {/* Guest alias input */}
+      {isGuest && currentPage === 1 && (
+        <div className="guest-info-card">
+          <div className="form-group">
+            <label htmlFor="guestAlias">
+              {language === 'zh' ? '您的昵称' : 'Your Name'}
+              <span className="optional-label">({language === 'zh' ? '可不填' : 'optional'})</span>
+            </label>
+            <input
+              type="text"
+              id="guestAlias"
+              value={guestAlias}
+              onChange={(e) => setGuestAlias(e.target.value)}
+              placeholder={language === 'zh' ? '匿名' : 'Anonymous'}
+            />
+            <small className="form-hint">
+              {language === 'zh'
+                ? '完成后可生成分享链接，与他人分享您的答案'
+                : 'After completing, you can share your answers with others'}
+            </small>
+          </div>
+        </div>
+      )}
 
       {error && <div className="error-message">{error}</div>}
 

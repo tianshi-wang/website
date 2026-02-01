@@ -46,6 +46,9 @@ export default function Feed() {
   const featuredItem = filteredQuestionnaires[0];
   const remainingItems = filteredQuestionnaires.slice(1);
 
+  // Recent 4 questionnaires (by index in the sorted list) are accessible without login
+  const isRecentQuestionnaire = (index) => index < 4;
+
   if (loading) {
     return (
       <div className="loading">
@@ -57,10 +60,10 @@ export default function Feed() {
 
   return (
     <div className="container">
-      {/* Hero/Featured Section */}
+      {/* Hero/Featured Section - First questionnaire is always accessible */}
       {featuredItem && (
         <Link
-          to={isAuthenticated ? `/questionnaire/${featuredItem.id}` : `/login?redirect=/questionnaire/${featuredItem.id}`}
+          to={`/questionnaire/${featuredItem.id}`}
           className="hero-link"
         >
           <div
@@ -111,10 +114,17 @@ export default function Feed() {
         </div>
       ) : (
         <div className="tiles-grid">
-          {remainingItems.map(q => (
+          {remainingItems.map((q, index) => {
+            // index + 1 because featuredItem is index 0
+            const canAccessWithoutLogin = isRecentQuestionnaire(index + 1);
+            const targetUrl = isAuthenticated
+              ? (q.completed > 0 ? `/summary/${q.id}` : `/questionnaire/${q.id}`)
+              : (canAccessWithoutLogin ? `/questionnaire/${q.id}` : `/login?redirect=/questionnaire/${q.id}`);
+
+            return (
             <Link
               key={q.id}
-              to={isAuthenticated ? (q.completed > 0 ? `/summary/${q.id}` : `/questionnaire/${q.id}`) : `/login?redirect=/questionnaire/${q.id}`}
+              to={targetUrl}
               className="tile"
             >
               <div className="tile-image">
@@ -138,7 +148,8 @@ export default function Feed() {
                 </p>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
 

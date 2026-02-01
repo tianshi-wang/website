@@ -7,12 +7,13 @@ import { useLanguage } from '../context/LanguageContext';
 export default function Summary() {
   const { id } = useParams();
   const { token } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showConfetti, setShowConfetti] = useState(true);
+  const [copied, setCopied] = useState(false);
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight
@@ -65,9 +66,59 @@ export default function Summary() {
     }
   };
 
+  const getShareUrl = () => {
+    if (!response?.share_token) return null;
+    return `${window.location.origin}/shared/${response.share_token}`;
+  };
+
+  const handleCopyLink = async () => {
+    const shareUrl = getShareUrl();
+    if (!shareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = getShareUrl();
+    if (!shareUrl) return;
+
+    const shareData = {
+      title: response?.questionnaire?.title || 'My Questionnaire Response',
+      text: language === 'zh' ? '来看看我的答案吧！' : 'Check out my answers!',
+      url: shareUrl
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or error
+        handleCopyLink();
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
   if (loading) return <div className="loading">{t('feed.loading')}</div>;
   if (error) return <div className="container"><div className="error-message">{error}</div></div>;
   if (!response) return null;
+
+  const shareUrl = getShareUrl();
 
   return (
     <>
@@ -86,6 +137,25 @@ export default function Summary() {
           <h1 className="celebration-title">{t('summary.completed')}</h1>
           <p className="celebration-subtitle">{response.questionnaire.title}</p>
         </div>
+
+        {/* Share Section */}
+        {shareUrl && (
+          <div className="share-section">
+            <p className="share-label">
+              {language === 'zh' ? '分享你的答案' : 'Share your answers'}
+            </p>
+            <div className="share-buttons">
+              <button className="btn btn-primary" onClick={handleShare}>
+                {language === 'zh' ? '分享' : 'Share'}
+              </button>
+              <button className="btn btn-secondary" onClick={handleCopyLink}>
+                {copied
+                  ? (language === 'zh' ? '已复制!' : 'Copied!')
+                  : (language === 'zh' ? '复制链接' : 'Copy Link')}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="questionnaire-header">
           <h2>{t('summary.yourAnswers')}</h2>
