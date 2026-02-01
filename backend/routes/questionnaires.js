@@ -221,51 +221,82 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     // Use transaction
     const updateQuestionnaire = db.transaction(async (txDb) => {
-      // Update questionnaire
+      // Update questionnaire metadata
       await txDb.prepare(`
         UPDATE questionnaires
         SET title = ?, description = ?, image_url = ?, language = ?
         WHERE id = ?
       `).run(title, description || null, image_url || null, language || 'zh', questionnaireId);
 
-      // Delete answers that reference questions in this questionnaire
-      // (answers table doesn't have ON DELETE CASCADE for question_id)
-      await txDb.prepare(`
-        DELETE FROM answers WHERE question_id IN (
-          SELECT id FROM questions WHERE questionnaire_id = ?
-        )
-      `).run(questionnaireId);
+      // Get existing questions ordered by order_num
+      const existingQuestions = await txDb.prepare(`
+        SELECT id, order_num FROM questions
+        WHERE questionnaire_id = ?
+        ORDER BY order_num
+      `).all(questionnaireId);
 
-      // Delete existing questions and options (cascade will delete options)
-      await txDb.prepare('DELETE FROM questions WHERE questionnaire_id = ?').run(questionnaireId);
-
-      // Create new questions and options
+      // Update or create questions (never delete to preserve answers)
       for (let idx = 0; idx < questions.length; idx++) {
         const question = questions[idx];
-        const questionResult = await txDb.prepare(`
-          INSERT INTO questions (questionnaire_id, text, type, page_number, order_num)
-          VALUES (?, ?, ?, ?, ?)
-        `).run(
-          questionnaireId,
-          question.text,
-          question.type,
-          question.page_number || 1,
-          question.order_num || idx
-        );
+        const existingQuestion = existingQuestions[idx];
 
-        const questionId = questionResult.lastInsertRowid;
+        if (existingQuestion) {
+          // Update existing question
+          await txDb.prepare(`
+            UPDATE questions
+            SET text = ?, type = ?, page_number = ?, order_num = ?
+            WHERE id = ?
+          `).run(
+            question.text,
+            question.type,
+            question.page_number || 1,
+            question.order_num || idx,
+            existingQuestion.id
+          );
 
-        // Create options if choice question
-        if (question.type !== 'text' && question.options) {
-          for (let optIdx = 0; optIdx < question.options.length; optIdx++) {
-            const option = question.options[optIdx];
-            await txDb.prepare(`
-              INSERT INTO options (question_id, text, order_num)
-              VALUES (?, ?, ?)
-            `).run(questionId, option.text, option.order_num || optIdx);
+          // Delete existing options for this question and recreate
+          await txDb.prepare('DELETE FROM options WHERE question_id = ?').run(existingQuestion.id);
+
+          // Create new options
+          if (question.type !== 'text' && question.options) {
+            for (let optIdx = 0; optIdx < question.options.length; optIdx++) {
+              const option = question.options[optIdx];
+              await txDb.prepare(`
+                INSERT INTO options (question_id, text, order_num)
+                VALUES (?, ?, ?)
+              `).run(existingQuestion.id, option.text, option.order_num || optIdx);
+            }
+          }
+        } else {
+          // Create new question
+          const questionResult = await txDb.prepare(`
+            INSERT INTO questions (questionnaire_id, text, type, page_number, order_num)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(
+            questionnaireId,
+            question.text,
+            question.type,
+            question.page_number || 1,
+            question.order_num || idx
+          );
+
+          const questionId = questionResult.lastInsertRowid;
+
+          // Create options if choice question
+          if (question.type !== 'text' && question.options) {
+            for (let optIdx = 0; optIdx < question.options.length; optIdx++) {
+              const option = question.options[optIdx];
+              await txDb.prepare(`
+                INSERT INTO options (question_id, text, order_num)
+                VALUES (?, ?, ?)
+              `).run(questionId, option.text, option.order_num || optIdx);
+            }
           }
         }
       }
+
+      // Note: We don't delete extra questions if the new count is smaller
+      // This preserves answers for removed questions (they just won't display)
 
       return questionnaireId;
     });
