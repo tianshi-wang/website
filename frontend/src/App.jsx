@@ -11,6 +11,9 @@ import Profile from './pages/Profile';
 import Questionnaire from './pages/Questionnaire';
 import Summary from './pages/Summary';
 import SharedSummary from './pages/SharedSummary';
+import Chat from './pages/Chat';
+import ChatSummary from './pages/ChatSummary';
+import SharedChatSummary from './pages/SharedChatSummary';
 import Dashboard from './pages/admin/Dashboard';
 import CreateQuestionnaire from './pages/admin/CreateQuestionnaire';
 
@@ -34,12 +37,22 @@ export default function App() {
         <Route path="/feed" element={<Feed />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/questionnaire/:id" element={<Questionnaire />} />
+        <Route path="/chat/:id" element={<Chat />} />
         <Route path="/shared/:shareToken" element={<SharedSummary />} />
+        <Route path="/shared-chat/:shareToken" element={<SharedChatSummary />} />
         <Route
           path="/summary/:id"
           element={
             <ProtectedRoute>
               <Summary />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat-summary/:id"
+          element={
+            <ProtectedRoute>
+              <ChatSummary />
             </ProtectedRoute>
           }
         />

@@ -1215,3 +1215,282 @@ body {
   color: var(--text-secondary);
   margin-bottom: 16px;
 }
+
+/* ===================== */
+/* Chat Questionnaire UI */
+/* ===================== */
+
+/* Full-page chat layout — no .container wrapper */
+.chat-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-bottom: 100px; /* space for fixed input bar */
+}
+
+/* Small title link in top-right corner (like screenshot) */
+.chat-page-topbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px 0;
+}
+
+.chat-page-title-link {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.chat-page-title-link:hover {
+  opacity: 1;
+  color: var(--accent-light);
+}
+
+/* Scrollable area */
+.chat-scroll {
+  padding: 0 16px;
+}
+
+/* Narrative block — plain story card, no accent border */
+.chat-narrative-block {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin-bottom: 28px;
+  font-size: 0.9rem;
+  line-height: 1.9;
+  color: var(--text-secondary);
+}
+
+.chat-narrative-block strong {
+  color: var(--text-primary);
+}
+
+/* Message list */
+.chat-msg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Character row (left) */
+.chat-row-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* User answer row (right) */
+.chat-row-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* Dog avatar — slightly warmer tint */
+.chat-avatar-dog {
+  background: #3a2840;
+  flex-shrink: 0;
+}
+
+/* Small circular avatar */
+.chat-avatar-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Character question bubble */
+.chat-q-bubble {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: 0 14px 14px 14px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 78%;
+  word-break: break-word;
+}
+
+/* User answer: name label above, text below — right aligned */
+.chat-a-block {
+  text-align: right;
+}
+
+.chat-a-name {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  padding-right: 2px;
+}
+
+.chat-a-text {
+  display: inline-block;
+  background: var(--bg-card);
+  color: var(--accent-light);
+  border-radius: 14px 0 14px 14px;
+  padding: 7px 14px;
+  font-size: 0.88rem;
+  max-width: 260px;
+  word-break: break-word;
+  text-align: left;
+}
+
+/* Option buttons — appear inline in the message list, right-aligned */
+.chat-options-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.chat-opt {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.83rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.chat-opt:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Fixed input bar — sits above the bottom navbar */
+.chat-bar {
+  position: fixed;
+  bottom: 80px; /* above the bottom navbar */
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 16px;
+  z-index: 100;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Trick: since max-width doesn't center a fixed element, use inset approach */
+@media (min-width: 712px) {
+  .chat-bar {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 680px;
+    right: auto;
+  }
+}
+
+.chat-bar-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-bar-input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-bar-input:focus {
+  border-color: var(--accent);
+}
+
+.chat-bar-input::placeholder {
+  color: var(--text-muted);
+}
+
+.chat-bar-send {
+  background: var(--accent);
+  color: white;
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.chat-bar-send:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+
+.chat-bar-send:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.chat-final-btn {
+  width: 100%;
+  background: var(--success);
+  color: #1a1f3d;
+  border: none;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.chat-final-btn:hover:not(:disabled) { opacity: 0.9; }
+.chat-final-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.chat-bar-error {
+  color: var(--accent);
+  font-size: 0.82rem;
+  margin-bottom: 6px;
+}
+
+/* Summary pages — reuse chat message layout */
+.chat-summary-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.chat-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0 20px;
+}
+
+.chat-summary-title {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.chat-share-section {
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  text-align: center;
+}

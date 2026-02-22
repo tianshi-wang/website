@@ -3,9 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
-const JSON_EXAMPLE = `{
+const JSON_EXAMPLE_FORM = `{
   "title": "Sample Questionnaire",
   "description": "Optional description",
+  "type": "form",
   "language": "zh",
   "questions": [
     {
@@ -28,6 +29,29 @@ const JSON_EXAMPLE = `{
   ]
 }`;
 
+const JSON_EXAMPLE_CHAT = `{
+  "title": "互动对话示例",
+  "description": "对话式问卷示例",
+  "type": "chat",
+  "language": "zh",
+  "narrative": "**欢迎来到这里。**\\n\\n在这段对话开始之前，请先了解：这里是一个安全的空间，你可以诚实地回答每一个问题。\\n\\n准备好了吗？",
+  "questions": [
+    {
+      "text": "首先，请告诉我你的名字（或者你想被怎么称呼）？",
+      "type": "text"
+    },
+    {
+      "text": "你如何形容现在的自己？",
+      "type": "single_choice",
+      "options": ["自信而清醒", "仍在探索", "随遇而安", "说不清楚"]
+    },
+    {
+      "text": "是什么让你来到这里？",
+      "type": "text"
+    }
+  ]
+}`;
+
 export default function CreateQuestionnaire() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -41,6 +65,8 @@ export default function CreateQuestionnaire() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [questionnaireLanguage, setQuestionnaireLanguage] = useState('zh');
+  const [questionnaireType, setQuestionnaireType] = useState('form');
+  const [narrative, setNarrative] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -70,6 +96,8 @@ export default function CreateQuestionnaire() {
       setTitle(q.title);
       setDescription(q.description || '');
       setQuestionnaireLanguage(q.language || 'zh');
+      setQuestionnaireType(q.type || 'form');
+      setNarrative(q.narrative || '');
       setImageUrl(q.image_url || '');
       setImagePreview(q.image_url || '');
 
@@ -197,8 +225,10 @@ export default function CreateQuestionnaire() {
     }));
   };
 
+  const [jsonExampleType, setJsonExampleType] = useState('form');
+
   const loadExample = () => {
-    setJsonInput(JSON_EXAMPLE);
+    setJsonInput(jsonExampleType === 'chat' ? JSON_EXAMPLE_CHAT : JSON_EXAMPLE_FORM);
   };
 
   const parseJsonInput = () => {
@@ -239,10 +269,17 @@ export default function CreateQuestionnaire() {
         };
       });
 
+      const type = data.type || 'form';
+      if (!['form', 'chat'].includes(type)) {
+        throw new Error(`Invalid type "${type}". Must be "form" or "chat".`);
+      }
+
       return {
         title: data.title,
         description: data.description || '',
         language: data.language || 'zh',
+        type,
+        narrative: data.narrative || '',
         questions: transformedQuestions
       };
     } catch (err) {
@@ -306,6 +343,8 @@ export default function CreateQuestionnaire() {
         title,
         description,
         language: questionnaireLanguage,
+        type: questionnaireType,
+        narrative: questionnaireType === 'chat' ? narrative : '',
         questions: preparedQuestions
       };
     }
@@ -424,9 +463,19 @@ export default function CreateQuestionnaire() {
             <div className="form-group">
               <div className="json-header">
                 <label>{t('admin.jsonInput')}</label>
-                <button type="button" className="btn-link" onClick={loadExample}>
-                  {t('admin.loadExample')}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    value={jsonExampleType}
+                    onChange={(e) => setJsonExampleType(e.target.value)}
+                    style={{ fontSize: '12px', padding: '2px 6px' }}
+                  >
+                    <option value="form">表单示例</option>
+                    <option value="chat">对话示例</option>
+                  </select>
+                  <button type="button" className="btn-link" onClick={loadExample}>
+                    {t('admin.loadExample')}
+                  </button>
+                </div>
               </div>
               <textarea
                 value={jsonInput}
@@ -472,6 +521,30 @@ export default function CreateQuestionnaire() {
                   <option value="en">{t('admin.languageEnglish')}</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label htmlFor="qtype">类型</label>
+                <select
+                  id="qtype"
+                  value={questionnaireType}
+                  onChange={(e) => setQuestionnaireType(e.target.value)}
+                >
+                  <option value="form">表单 (Form)</option>
+                  <option value="chat">对话 (Chat)</option>
+                </select>
+              </div>
+              {questionnaireType === 'chat' && (
+                <div className="form-group">
+                  <label htmlFor="narrative">叙事文本 (Narrative)</label>
+                  <textarea
+                    id="narrative"
+                    value={narrative}
+                    onChange={(e) => setNarrative(e.target.value)}
+                    rows={5}
+                    placeholder="支持 Markdown：**加粗**，*斜体*，换行用 \n"
+                  />
+                  <small className="form-hint">在对话开始前显示的故事性文字，支持 Markdown 格式</small>
+                </div>
+              )}
             </div>
 
             <div className="admin-section">

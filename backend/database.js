@@ -211,6 +211,22 @@ async function initDatabase() {
     // Column is already nullable or doesn't exist
   }
 
+  // Migration: Add type column to questionnaires if not exists
+  try {
+    await pool.query('SELECT type FROM questionnaires LIMIT 1');
+  } catch (e) {
+    await pool.query("ALTER TABLE questionnaires ADD COLUMN type VARCHAR(20) DEFAULT 'form'");
+    console.log('Added type column to questionnaires');
+  }
+
+  // Migration: Add narrative column to questionnaires if not exists
+  try {
+    await pool.query('SELECT narrative FROM questionnaires LIMIT 1');
+  } catch (e) {
+    await pool.query('ALTER TABLE questionnaires ADD COLUMN narrative TEXT');
+    console.log('Added narrative column to questionnaires');
+  }
+
   console.log('PostgreSQL database initialized');
   return db;
 }

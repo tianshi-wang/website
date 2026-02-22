@@ -49,6 +49,19 @@ export default function Feed() {
   // Recent 4 questionnaires (by index in the sorted list) are accessible without login
   const isRecentQuestionnaire = (index) => index < 4;
 
+  // Get the correct URL for a questionnaire based on its type and completion status
+  const getQuestionnaireUrl = (q, canAccess) => {
+    const isChat = q.type === 'chat';
+    if (!canAccess) {
+      const takeUrl = isChat ? `/chat/${q.id}` : `/questionnaire/${q.id}`;
+      return `/login?redirect=${takeUrl}`;
+    }
+    if (isAuthenticated && q.completed > 0) {
+      return isChat ? `/chat-summary/${q.id}` : `/summary/${q.id}`;
+    }
+    return isChat ? `/chat/${q.id}` : `/questionnaire/${q.id}`;
+  };
+
   if (loading) {
     return (
       <div className="loading">
@@ -63,7 +76,7 @@ export default function Feed() {
       {/* Hero/Featured Section - First questionnaire is always accessible */}
       {featuredItem && (
         <Link
-          to={`/questionnaire/${featuredItem.id}`}
+          to={getQuestionnaireUrl(featuredItem, true)}
           className="hero-link"
         >
           <div
@@ -117,9 +130,8 @@ export default function Feed() {
           {remainingItems.map((q, index) => {
             // index + 1 because featuredItem is index 0
             const canAccessWithoutLogin = isRecentQuestionnaire(index + 1);
-            const targetUrl = isAuthenticated
-              ? (q.completed > 0 ? `/summary/${q.id}` : `/questionnaire/${q.id}`)
-              : (canAccessWithoutLogin ? `/questionnaire/${q.id}` : `/login?redirect=/questionnaire/${q.id}`);
+            const canAccess = isAuthenticated || canAccessWithoutLogin;
+            const targetUrl = getQuestionnaireUrl(q, canAccess);
 
             return (
             <Link

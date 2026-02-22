@@ -136,7 +136,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // Create questionnaire (admin only)
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { title, description, image_url, language, questions } = req.body;
+    const { title, description, image_url, language, type, narrative, questions } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -150,9 +150,9 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     const createQuestionnaire = db.transaction(async (txDb) => {
       // Create questionnaire
       const qResult = await txDb.prepare(`
-        INSERT INTO questionnaires (title, description, image_url, language, created_by)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(title, description || null, image_url || null, language || 'zh', req.user.id);
+        INSERT INTO questionnaires (title, description, image_url, language, type, narrative, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(title, description || null, image_url || null, language || 'zh', type || 'form', narrative || null, req.user.id);
 
       const questionnaireId = qResult.lastInsertRowid;
 
@@ -202,7 +202,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 // Update questionnaire (admin only)
 router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { title, description, image_url, language, questions } = req.body;
+    const { title, description, image_url, language, type, narrative, questions } = req.body;
     const questionnaireId = req.params.id;
 
     if (!title) {
@@ -224,9 +224,9 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       // Update questionnaire metadata
       await txDb.prepare(`
         UPDATE questionnaires
-        SET title = ?, description = ?, image_url = ?, language = ?
+        SET title = ?, description = ?, image_url = ?, language = ?, type = ?, narrative = ?
         WHERE id = ?
-      `).run(title, description || null, image_url || null, language || 'zh', questionnaireId);
+      `).run(title, description || null, image_url || null, language || 'zh', type || 'form', narrative || null, questionnaireId);
 
       // Get existing questions ordered by order_num
       const existingQuestions = await txDb.prepare(`
