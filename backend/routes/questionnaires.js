@@ -316,6 +316,9 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 // Delete questionnaire (admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
+    // Delete responses first (answers cascade from responses)
+    await db.prepare('DELETE FROM responses WHERE questionnaire_id = ?').run(req.params.id);
+
     const result = await db.prepare('DELETE FROM questionnaires WHERE id = ?')
       .run(req.params.id);
 
