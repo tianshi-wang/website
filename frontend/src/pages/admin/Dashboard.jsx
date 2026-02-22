@@ -73,7 +73,7 @@ export default function Dashboard() {
                   <p className="card-meta">Created {new Date(q.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="flex gap-10">
-                  <Link to={`/questionnaire/${q.id}`} className="btn btn-secondary">
+                  <Link to={q.type === 'chat' ? `/chat/${q.id}` : `/questionnaire/${q.id}`} className="btn btn-secondary">
                     Preview
                   </Link>
                   <Link to={`/admin/edit/${q.id}`} className="btn btn-primary">
