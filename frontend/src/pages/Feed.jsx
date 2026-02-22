@@ -169,15 +169,16 @@ export default function Feed() {
       {!isAuthenticated && (
         <div className="promo-banner">
           <div className="promo-content">
-            <div className="promo-icon">👋</div>
+            <div className="promo-icon">👑</div>
             <div className="promo-text">
-              <div className="promo-banner-title">{t('promo.joinUs')}</div>
+              <div className="promo-banner-title">{t('promo.memberTitle')}</div>
+              <div className="promo-banner-benefit">{t('promo.memberBenefit')}</div>
               <div className="promo-banner-subtitle">{t('promo.trackProgress')}</div>
             </div>
           </div>
           <div className="promo-buttons">
             <Link to="/login" className="btn btn-outline">{t('auth.login')}</Link>
-            <Link to="/register" className="btn btn-primary">{t('auth.register')}</Link>
+            <Link to="/register" className="btn btn-primary">{t('promo.joinUs')}</Link>
           </div>
         </div>
       )}

@@ -31,6 +31,8 @@ export const translations = {
       joinUs: 'Join Us',
       signUpFree: 'Sign up for free',
       trackProgress: 'Track your progress and save your answers',
+      memberTitle: 'Become a Member!',
+      memberBenefit: 'Access exclusive member-only content',
     },
 
     // Auth
@@ -181,6 +183,8 @@ export const translations = {
       joinUs: '加入我们',
       signUpFree: '免费注册',
       trackProgress: '追踪进度并保存您的答案',
+      memberTitle: '加入会员！',
+      memberBenefit: '会员福利包括更多会员专属内容',
     },
 
     // Auth
