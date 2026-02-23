@@ -27,6 +27,24 @@ export default function Dashboard() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const res = await fetch('/api/admin/backup/export', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this questionnaire?')) return;
 
@@ -49,9 +67,14 @@ export default function Dashboard() {
       <div className="admin-section">
         <div className="flex justify-between">
           <h2>Admin Dashboard</h2>
-          <Link to="/admin/create" className="btn btn-primary">
-            Create Questionnaire
-          </Link>
+          <div className="flex gap-10">
+            <button onClick={handleExport} className="btn btn-secondary">
+              Export Data
+            </button>
+            <Link to="/admin/create" className="btn btn-primary">
+              Create Questionnaire
+            </Link>
+          </div>
         </div>
       </div>
 
