@@ -16,6 +16,7 @@ import ChatSummary from './pages/ChatSummary';
 import SharedChatSummary from './pages/SharedChatSummary';
 import Dashboard from './pages/admin/Dashboard';
 import CreateQuestionnaire from './pages/admin/CreateQuestionnaire';
+import Responses from './pages/admin/Responses';
 
 export default function App() {
   const { loading } = useAuth();
@@ -77,6 +78,14 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <CreateQuestionnaire />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/responses/:id"
+          element={
+            <ProtectedRoute adminOnly>
+              <Responses />
             </ProtectedRoute>
           }
         />

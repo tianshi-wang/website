@@ -99,6 +99,9 @@ export default function Dashboard() {
                   <Link to={q.type === 'chat' ? `/chat/${q.id}` : `/questionnaire/${q.id}`} className="btn btn-secondary">
                     Preview
                   </Link>
+                  <Link to={`/admin/responses/${q.id}`} className="btn btn-secondary">
+                    Responses
+                  </Link>
                   <Link to={`/admin/edit/${q.id}`} className="btn btn-primary">
                     Edit
                   </Link>
