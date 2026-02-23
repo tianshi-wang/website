@@ -48,7 +48,9 @@ router.get('/', authenticateToken, async (req, res) => {
 
     let query = `
       SELECT q.*, u.email as creator_email,
-        (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id AND r.user_id = ?) as completed
+        (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id AND r.user_id = ?) as completed,
+        (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id) as response_count,
+        (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id AND r.completed_at > NOW() - INTERVAL '7 days') as new_response_count
       FROM questionnaires q
       JOIN users u ON q.created_by = u.id
     `;

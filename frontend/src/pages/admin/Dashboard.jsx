@@ -100,7 +100,9 @@ export default function Dashboard() {
                     Preview
                   </Link>
                   <Link to={`/admin/responses/${q.id}`} className="btn btn-secondary">
-                    Responses
+                    Responses{q.response_count > 0 ? ` (${q.response_count}` : ''}
+                    {q.new_response_count > 0 && <span style={{ color: '#4ade80', fontWeight: 700 }}> +{q.new_response_count}</span>}
+                    {q.response_count > 0 ? ')' : ''}
                   </Link>
                   <Link to={`/admin/edit/${q.id}`} className="btn btn-primary">
                     Edit
