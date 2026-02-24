@@ -481,6 +481,19 @@ body {
   background: var(--success);
 }
 
+.tile-badge-ai {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+}
+
 .tile-content {
   padding: 12px;
 }
@@ -1560,26 +1573,3 @@ body {
   word-wrap: break-word;
 }
 
-/* AI Badge for tiles */
-.tile-badges {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.tile-badges .tile-badge {
-  pointer-events: auto;
-}
-
-.tile-badge.ai-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  left: auto;
-  bottom: auto;
-  font-size: 0.7rem;
-  padding: 4px 8px;
-}

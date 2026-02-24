@@ -147,18 +147,16 @@ export default function Feed() {
                     {q.title.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div className="tile-badges">
-                  {isAuthenticated && (
-                    <span className={`tile-badge ${q.completed > 0 ? 'completed' : ''}`}>
-                      {q.completed > 0 ? t('feed.done') : t('feed.new')}
-                    </span>
-                  )}
-                  {q.ai_summary_enabled && (
-                    <span className="tile-badge ai-badge">
-                      🤖 AI
-                    </span>
-                  )}
-                </div>
+                {isAuthenticated && (
+                  <span className={`tile-badge ${q.completed > 0 ? 'completed' : ''}`}>
+                    {q.completed > 0 ? t('feed.done') : t('feed.new')}
+                  </span>
+                )}
+                {q.ai_summary_enabled && (
+                  <span className="tile-badge tile-badge-ai">
+                    AI
+                  </span>
+                )}
               </div>
               <div className="tile-content">
                 <h3 className="tile-title">{q.title}</h3>
