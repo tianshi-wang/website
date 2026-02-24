@@ -156,6 +156,19 @@ export default function SharedSummary() {
           </div>
         </div>
 
+        {/* AI Summary Section */}
+        {response.ai_summary && response.questionnaire?.ai_summary_enabled && (
+          <div className="ai-summary-section">
+            <div className="ai-summary-header">
+              <span className="ai-badge">🤖 AI</span>
+              <h2>{language === 'zh' ? 'AI 总结' : 'AI Summary'}</h2>
+            </div>
+            <div className="ai-summary-content">
+              {response.ai_summary}
+            </div>
+          </div>
+        )}
+
         <div className="questionnaire-header">
           <h2>{t('summary.yourAnswers')}</h2>
           <p className="card-meta">{new Date(response.completed_at).toLocaleString()}</p>

@@ -19,7 +19,8 @@ router.get('/public', async (req, res) => {
 
     let query = `
       SELECT q.*, u.email as creator_email,
-        (SELECT COUNT(*) FROM questions WHERE questionnaire_id = q.id) as question_count
+        (SELECT COUNT(*) FROM questions WHERE questionnaire_id = q.id) as question_count,
+        COALESCE(q.ai_summary_enabled, 0) as ai_summary_enabled
       FROM questionnaires q
       JOIN users u ON q.created_by = u.id
     `;
@@ -50,7 +51,8 @@ router.get('/', authenticateToken, async (req, res) => {
       SELECT q.*, u.email as creator_email,
         (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id AND r.user_id = ?) as completed,
         (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id) as response_count,
-        (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id AND r.completed_at > NOW() - INTERVAL '7 days') as new_response_count
+        (SELECT COUNT(*) FROM responses r WHERE r.questionnaire_id = q.id AND r.completed_at > NOW() - INTERVAL '7 days') as new_response_count,
+        COALESCE(q.ai_summary_enabled, 0) as ai_summary_enabled
       FROM questionnaires q
       JOIN users u ON q.created_by = u.id
     `;
@@ -138,7 +140,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // Create questionnaire (admin only)
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { title, description, image_url, language, type, narrative, questions } = req.body;
+    const { title, description, image_url, language, type, narrative, questions, ai_summary_enabled, ai_summary_prompt } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -152,9 +154,9 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     const createQuestionnaire = db.transaction(async (txDb) => {
       // Create questionnaire
       const qResult = await txDb.prepare(`
-        INSERT INTO questionnaires (title, description, image_url, language, type, narrative, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(title, description || null, image_url || null, language || 'zh', type || 'form', narrative || null, req.user.id);
+        INSERT INTO questionnaires (title, description, image_url, language, type, narrative, ai_summary_enabled, ai_summary_prompt, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(title, description || null, image_url || null, language || 'zh', type || 'form', narrative || null, ai_summary_enabled ? 1 : 0, ai_summary_prompt || null, req.user.id);
 
       const questionnaireId = qResult.lastInsertRowid;
 
@@ -204,7 +206,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 // Update questionnaire (admin only)
 router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { title, description, image_url, language, type, narrative, questions } = req.body;
+    const { title, description, image_url, language, type, narrative, questions, ai_summary_enabled, ai_summary_prompt } = req.body;
     const questionnaireId = req.params.id;
 
     if (!title) {
@@ -226,9 +228,9 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       // Update questionnaire metadata
       await txDb.prepare(`
         UPDATE questionnaires
-        SET title = ?, description = ?, image_url = ?, language = ?, type = ?, narrative = ?
+        SET title = ?, description = ?, image_url = ?, language = ?, type = ?, narrative = ?, ai_summary_enabled = ?, ai_summary_prompt = ?
         WHERE id = ?
-      `).run(title, description || null, image_url || null, language || 'zh', type || 'form', narrative || null, questionnaireId);
+      `).run(title, description || null, image_url || null, language || 'zh', type || 'form', narrative || null, ai_summary_enabled ? 1 : 0, ai_summary_prompt || null, questionnaireId);
 
       // Get existing questions ordered by order_num
       const existingQuestions = await txDb.prepare(`

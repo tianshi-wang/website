@@ -1516,3 +1516,70 @@ body {
   border-radius: var(--radius);
   text-align: center;
 }
+
+/* AI Summary Section */
+.ai-summary-section {
+  margin: 28px 0;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: var(--radius);
+  animation: fadeIn 0.5s ease;
+}
+
+.ai-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ai-summary-header h2 {
+  font-size: 1.2rem;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ai-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+}
+
+.ai-summary-content {
+  color: var(--text-primary);
+  line-height: 1.8;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* AI Badge for tiles */
+.tile-badges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.tile-badges .tile-badge {
+  pointer-events: auto;
+}
+
+.tile-badge.ai-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  left: auto;
+  bottom: auto;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+}

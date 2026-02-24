@@ -131,6 +131,19 @@ export default function ChatSummary() {
             ))}
           </div>
 
+          {/* AI Summary Section */}
+          {response.ai_summary && response.questionnaire?.ai_summary_enabled && (
+            <div className="ai-summary-section">
+              <div className="ai-summary-header">
+                <span className="ai-badge">🤖 AI</span>
+                <h2>AI 总结</h2>
+              </div>
+              <div className="ai-summary-content">
+                {response.ai_summary}
+              </div>
+            </div>
+          )}
+
           {shareUrl && (
             <div className="chat-share-section">
               <p className="share-label">分享你的答案</p>

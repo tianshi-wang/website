@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { db } = require('../database');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { generateSummary } = require('../services/aiService');
 
 const router = express.Router();
 
@@ -95,10 +96,55 @@ router.post('/', optionalAuth, async (req, res) => {
 
     const { responseId, shareToken: token } = await submitResponse();
 
+    // Generate AI summary if enabled for this questionnaire
+    let aiSummary = null;
+    try {
+      const questionnaireData = await db.prepare(`
+        SELECT q.*, q.ai_summary_enabled, q.ai_summary_prompt
+        FROM questionnaires q
+        WHERE q.id = ?
+      `).get(questionnaire_id);
+
+      if (questionnaireData && questionnaireData.ai_summary_enabled) {
+        // Fetch all questions and answers for this response
+        const qaData = await db.prepare(`
+          SELECT q.text as question, a.answer_text as answer
+          FROM answers a
+          JOIN questions q ON a.question_id = q.id
+          WHERE a.response_id = ?
+          ORDER BY q.page_number, q.order_num
+        `).all(responseId);
+
+        // Format Q&A for AI
+        const qaHistory = qaData.map(row => ({
+          question: row.question,
+          answer: row.answer
+        }));
+
+        // Generate AI summary
+        aiSummary = await generateSummary({
+          prompt: questionnaireData.ai_summary_prompt,
+          qaHistory: qaHistory,
+          questionnaireTitle: questionnaireData.title
+        });
+
+        // Save AI summary to database
+        await db.prepare(`
+          UPDATE responses
+          SET ai_summary = ?
+          WHERE id = ?
+        `).run(aiSummary, responseId);
+      }
+    } catch (aiError) {
+      console.error('AI summary generation error:', aiError);
+      // Don't fail the submission if AI summary fails
+    }
+
     res.status(201).json({
       message: 'Response submitted',
       responseId,
-      shareToken: token
+      shareToken: token,
+      aiSummary: aiSummary
     });
   } catch (error) {
     console.error('Submit response error:', error);
@@ -113,8 +159,8 @@ router.get('/questionnaire/:questionnaireId', authenticateToken, async (req, res
 
     // Get the response
     const response = await db.prepare(`
-      SELECT * FROM responses
-      WHERE user_id = ? AND questionnaire_id = ?
+      SELECT r.*, r.ai_summary FROM responses r
+      WHERE r.user_id = ? AND r.questionnaire_id = ?
     `).get(req.user.id, questionnaireId);
 
     if (!response) {
@@ -123,7 +169,7 @@ router.get('/questionnaire/:questionnaireId', authenticateToken, async (req, res
 
     // Get questionnaire info
     const questionnaire = await db.prepare(`
-      SELECT * FROM questionnaires WHERE id = ?
+      SELECT q.*, q.ai_summary_enabled FROM questionnaires q WHERE q.id = ?
     `).get(questionnaireId);
 
     // Get questions with answers
@@ -168,7 +214,7 @@ router.get('/shared/:shareToken', async (req, res) => {
 
     // Get the response by share token
     const response = await db.prepare(`
-      SELECT r.*, u.alias as user_alias
+      SELECT r.*, r.ai_summary, u.alias as user_alias
       FROM responses r
       LEFT JOIN users u ON r.user_id = u.id
       WHERE r.share_token = ?
@@ -180,7 +226,7 @@ router.get('/shared/:shareToken', async (req, res) => {
 
     // Get questionnaire info
     const questionnaire = await db.prepare(`
-      SELECT * FROM questionnaires WHERE id = ?
+      SELECT q.*, q.ai_summary_enabled FROM questionnaires q WHERE q.id = ?
     `).get(response.questionnaire_id);
 
     // Get questions with answers
@@ -213,6 +259,7 @@ router.get('/shared/:shareToken', async (req, res) => {
         id: response.id,
         displayName,
         completed_at: response.completed_at,
+        ai_summary: response.ai_summary,
         questionnaire,
         questions: questionsWithOptions
       }

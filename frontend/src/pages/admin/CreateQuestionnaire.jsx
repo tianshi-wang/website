@@ -8,6 +8,8 @@ const JSON_EXAMPLE_FORM = `{
   "description": "Optional description",
   "type": "form",
   "language": "zh",
+  "ai_summary_enabled": true,
+  "ai_summary_prompt": "请根据用户的回答，分析他们的性格特点和兴趣爱好，给出温暖的建议。",
   "questions": [
     {
       "text": "What is your name?",
@@ -35,6 +37,8 @@ const JSON_EXAMPLE_CHAT = `{
   "type": "chat",
   "language": "zh",
   "narrative": "**欢迎来到这里。**\\n\\n在这段对话开始之前，请先了解：这里是一个安全的空间，你可以诚实地回答每一个问题。\\n\\n准备好了吗？",
+  "ai_summary_enabled": true,
+  "ai_summary_prompt": "请根据对话内容，温柔地总结用户的心理状态和情感需求，给予理解和支持。",
   "questions": [
     {
       "text": "首先，请告诉我你的名字（或者你想被怎么称呼）？",
@@ -70,6 +74,8 @@ export default function CreateQuestionnaire() {
   const [imageUrl, setImageUrl] = useState('');
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [aiSummaryEnabled, setAiSummaryEnabled] = useState(false);
+  const [aiSummaryPrompt, setAiSummaryPrompt] = useState('');
   const [questions, setQuestions] = useState([
     { text: '', type: 'text', page_number: 1, options: [] }
   ]);
@@ -100,6 +106,8 @@ export default function CreateQuestionnaire() {
       setNarrative(q.narrative || '');
       setImageUrl(q.image_url || '');
       setImagePreview(q.image_url || '');
+      setAiSummaryEnabled(q.ai_summary_enabled === 1 || q.ai_summary_enabled === true);
+      setAiSummaryPrompt(q.ai_summary_prompt || '');
 
       // Transform questions data
       const transformedQuestions = q.questions.map(question => ({
@@ -280,6 +288,8 @@ export default function CreateQuestionnaire() {
         language: data.language || 'zh',
         type,
         narrative: data.narrative || '',
+        ai_summary_enabled: data.ai_summary_enabled || false,
+        ai_summary_prompt: data.ai_summary_prompt || '',
         questions: transformedQuestions
       };
     } catch (err) {
@@ -299,6 +309,8 @@ export default function CreateQuestionnaire() {
     if (mode === 'json') {
       try {
         submitData = parseJsonInput();
+        // Preserve the image_url and ensure AI settings are included
+        submitData.image_url = imageUrl || null;
       } catch (err) {
         setError(err.message);
         return;
@@ -345,12 +357,16 @@ export default function CreateQuestionnaire() {
         language: questionnaireLanguage,
         type: questionnaireType,
         narrative: questionnaireType === 'chat' ? narrative : '',
-        questions: preparedQuestions
+        questions: preparedQuestions,
+        ai_summary_enabled: aiSummaryEnabled,
+        ai_summary_prompt: aiSummaryEnabled ? aiSummaryPrompt : null
       };
     }
 
-    // Add image_url if uploaded
-    submitData.image_url = imageUrl || null;
+    // Add image_url if uploaded (already added for JSON mode above)
+    if (mode === 'manual') {
+      submitData.image_url = imageUrl || null;
+    }
 
     setSubmitting(true);
 
@@ -502,15 +518,6 @@ export default function CreateQuestionnaire() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="description">{t('admin.description')}</label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                />
-              </div>
-              <div className="form-group">
                 <label htmlFor="language">{t('admin.language')}</label>
                 <select
                   id="language"
@@ -532,6 +539,33 @@ export default function CreateQuestionnaire() {
                   <option value="chat">对话 (Chat)</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={aiSummaryEnabled}
+                    onChange={(e) => setAiSummaryEnabled(e.target.checked)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  启用 AI 总结 (Enable AI Summary)
+                </label>
+                <small className="form-hint">为回答生成 AI 总结摘要</small>
+              </div>
+              {aiSummaryEnabled && (
+                <div className="form-group">
+                  <label htmlFor="ai_summary_prompt">AI 总结提示词 (AI Summary Prompt)</label>
+                  <textarea
+                    id="ai_summary_prompt"
+                    value={aiSummaryPrompt}
+                    onChange={(e) => setAiSummaryPrompt(e.target.value)}
+                    rows={5}
+                    placeholder="例如：请根据用户的回答，生成一份详细的个性分析报告，包括性格特点、兴趣爱好、价值观等方面..."
+                  />
+                  <small className="form-hint">
+                    这个提示词将与用户的问卷回答一起发送给 AI，用于生成个性化总结。AI 会看到所有问题和回答的完整历史。
+                  </small>
+                </div>
+              )}
               {questionnaireType === 'chat' && (
                 <div className="form-group">
                   <label htmlFor="narrative">叙事文本 (Narrative)</label>

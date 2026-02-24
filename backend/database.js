@@ -227,6 +227,30 @@ async function initDatabase() {
     console.log('Added narrative column to questionnaires');
   }
 
+  // Migration: Add ai_summary_enabled column to questionnaires if not exists
+  try {
+    await pool.query('SELECT ai_summary_enabled FROM questionnaires LIMIT 1');
+  } catch (e) {
+    await pool.query('ALTER TABLE questionnaires ADD COLUMN ai_summary_enabled INTEGER DEFAULT 0');
+    console.log('Added ai_summary_enabled column to questionnaires');
+  }
+
+  // Migration: Add ai_summary_prompt column to questionnaires if not exists
+  try {
+    await pool.query('SELECT ai_summary_prompt FROM questionnaires LIMIT 1');
+  } catch (e) {
+    await pool.query('ALTER TABLE questionnaires ADD COLUMN ai_summary_prompt TEXT');
+    console.log('Added ai_summary_prompt column to questionnaires');
+  }
+
+  // Migration: Add ai_summary column to responses if not exists
+  try {
+    await pool.query('SELECT ai_summary FROM responses LIMIT 1');
+  } catch (e) {
+    await pool.query('ALTER TABLE responses ADD COLUMN ai_summary TEXT');
+    console.log('Added ai_summary column to responses');
+  }
+
   console.log('PostgreSQL database initialized');
   return db;
 }
