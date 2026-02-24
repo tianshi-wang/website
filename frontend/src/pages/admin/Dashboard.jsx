@@ -92,7 +92,6 @@ export default function Dashboard() {
               <div className="flex justify-between">
                 <div>
                   <h3 className="card-title">{q.title}</h3>
-                  {q.description && <p className="card-description">{q.description}</p>}
                   <p className="card-meta">Created {new Date(q.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="flex gap-10">
