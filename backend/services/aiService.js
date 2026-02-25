@@ -44,7 +44,7 @@ async function generateSummary({ prompt, qaHistory, questionnaireTitle }) {
         'Authorization': `Bearer ${GROK_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'grok-3',
+        model: 'grok-4-1-fast-reasoning',
         messages: messages,
         temperature: 0.7,
         max_tokens: 2000
