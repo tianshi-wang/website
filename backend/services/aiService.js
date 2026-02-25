@@ -44,7 +44,7 @@ async function generateSummary({ prompt, qaHistory, questionnaireTitle }) {
         'Authorization': `Bearer ${GROK_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: messages,
         temperature: 0.7,
         max_tokens: 2000
@@ -53,7 +53,8 @@ async function generateSummary({ prompt, qaHistory, questionnaireTitle }) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Grok API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      console.error('Grok API error details:', JSON.stringify(errorData, null, 2));
+      throw new Error(`Grok API error: ${response.status} - ${errorData.error?.message || errorData.message || JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();

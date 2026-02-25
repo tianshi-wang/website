@@ -166,6 +166,18 @@ export default function Questionnaire() {
         )}
       </div>
 
+      {/* AI Summary Notice */}
+      {questionnaire.ai_summary_enabled && currentPage === 1 && (
+        <div className="ai-notice-banner">
+          <span className="ai-notice-icon">✨</span>
+          <div className="ai-notice-text">
+            {language === 'zh'
+              ? '完成问卷后，AI 将为你生成个性化总结'
+              : 'After completing, you\'ll receive an AI-powered personalized summary'}
+          </div>
+        </div>
+      )}
+
       {/* Guest alias input */}
       {isGuest && currentPage === 1 && (
         <div className="guest-info-card">

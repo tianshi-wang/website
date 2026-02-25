@@ -16,6 +16,7 @@ Added AI-powered summary generation for questionnaires using the Grok API. When 
 ### 2. Backend Integration
 - **Grok API Service** (`backend/services/aiService.js`):
   - Connects to xAI's Grok API
+  - Uses Grok-3 model for fast, high-quality summaries
   - Sends questionnaire responses + custom prompt
   - Returns AI-generated summary
 
@@ -92,7 +93,7 @@ Migrations run automatically on server start:
 4. If yes:
    - Fetches all Q&A pairs
    - Combines with custom prompt
-   - Calls Grok API (`grok-beta` model)
+   - Calls Grok API (`grok-3` model)
    - Saves returned summary to `responses.ai_summary`
 5. Returns summary to frontend for immediate display
 

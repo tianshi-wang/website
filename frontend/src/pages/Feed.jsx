@@ -152,9 +152,9 @@ export default function Feed() {
                     {q.completed > 0 ? t('feed.done') : t('feed.new')}
                   </span>
                 )}
-                {q.ai_summary_enabled && (
-                  <span className="tile-badge tile-badge-ai">
-                    AI
+                {!!q.ai_summary_enabled && (
+                  <span className="tile-badge-ai">
+                    ✨ AI
                   </span>
                 )}
               </div>

@@ -166,6 +166,16 @@ export default function Chat() {
           </div>
         )}
 
+        {/* AI Summary Notice */}
+        {questionnaire.ai_summary_enabled && (
+          <div className="ai-notice-banner" style={{ margin: '0 16px 16px 16px' }}>
+            <span className="ai-notice-icon">✨</span>
+            <div className="ai-notice-text">
+              完成对话后，AI 将为你生成个性化总结
+            </div>
+          </div>
+        )}
+
         {/* Chat message list */}
         <div className="chat-msg-list">
           {history.map((item, idx) => {

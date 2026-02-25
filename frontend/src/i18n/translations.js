@@ -180,7 +180,7 @@ export const translations = {
 
     // Promo banner
     promo: {
-      joinUs: '加入我们',
+      joinUs: '注册',
       signUpFree: '免费注册',
       trackProgress: '追踪进度并保存您的答案',
       memberTitle: '加入会员！',
