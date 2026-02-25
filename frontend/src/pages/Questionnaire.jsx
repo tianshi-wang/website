@@ -167,7 +167,7 @@ export default function Questionnaire() {
       </div>
 
       {/* AI Summary Notice */}
-      {questionnaire.ai_summary_enabled && currentPage === 1 && (
+      {!!questionnaire.ai_summary_enabled && currentPage === 1 && (
         <div className="ai-notice-banner">
           <span className="ai-notice-icon">✨</span>
           <div className="ai-notice-text">

@@ -24,10 +24,12 @@ export default function Chat() {
   // currentQuestionIndex: which question is awaiting an answer (-1 = not started)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(-1);
   const [answers, setAnswers] = useState({});
-  // history: [{type:'q'|'a', text, name?}]
+  // history: [{type:'q'|'a', text, name?, questionId?}]
   const [history, setHistory] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [userName, setUserName] = useState('');
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editValue, setEditValue] = useState('');
 
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -87,7 +89,7 @@ export default function Chat() {
 
     const newHistory = [
       ...history,
-      { type: 'a', text: trimmed, name: displayName }
+      { type: 'a', text: trimmed, name: displayName, questionId: question.id }
     ];
 
     const nextIndex = currentQuestionIndex + 1;
@@ -107,6 +109,37 @@ export default function Chat() {
       e.preventDefault();
       submitAnswer(inputValue);
     }
+  };
+
+  const startEditing = (idx, currentText) => {
+    setEditingIndex(idx);
+    setEditValue(currentText);
+  };
+
+  const cancelEditing = () => {
+    setEditingIndex(null);
+    setEditValue('');
+  };
+
+  const saveEdit = (idx) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) return;
+
+    const item = history[idx];
+    if (item.type !== 'a') return;
+
+    // Update answers
+    const newAnswers = { ...answers, [item.questionId]: trimmed };
+    setAnswers(newAnswers);
+
+    // Update history
+    const newHistory = [...history];
+    newHistory[idx] = { ...item, text: trimmed };
+    setHistory(newHistory);
+
+    // Clear editing state
+    setEditingIndex(null);
+    setEditValue('');
   };
 
   const handleFinalSubmit = async () => {
@@ -167,7 +200,7 @@ export default function Chat() {
         )}
 
         {/* AI Summary Notice */}
-        {questionnaire.ai_summary_enabled && (
+        {!!questionnaire.ai_summary_enabled && (
           <div className="ai-notice-banner" style={{ margin: '0 16px 16px 16px' }}>
             <span className="ai-notice-icon">✨</span>
             <div className="ai-notice-text">
@@ -190,11 +223,41 @@ export default function Chat() {
               );
             }
             if (item.type === 'a') {
+              const isEditing = editingIndex === idx;
               return (
                 <div key={idx} className="chat-row-right">
                   <div className="chat-a-block">
                     <div className="chat-a-name">{item.name}</div>
-                    <div className="chat-a-text">{item.text}</div>
+                    {isEditing ? (
+                      <div className="chat-edit-container">
+                        <input
+                          type="text"
+                          className="chat-edit-input"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveEdit(idx);
+                            if (e.key === 'Escape') cancelEditing();
+                          }}
+                          autoFocus
+                        />
+                        <div className="chat-edit-buttons">
+                          <button className="chat-edit-save" onClick={() => saveEdit(idx)}>✓</button>
+                          <button className="chat-edit-cancel" onClick={cancelEditing}>✕</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="chat-a-text-wrapper">
+                        <div className="chat-a-text">{item.text}</div>
+                        <button
+                          className="chat-edit-btn"
+                          onClick={() => startEditing(idx, item.text)}
+                          title="编辑"
+                        >
+                          ✎
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="chat-avatar-circle chat-avatar-dog">🐶</div>
                 </div>

@@ -1378,6 +1378,91 @@ body {
   text-align: left;
 }
 
+.chat-a-text-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.chat-edit-btn {
+  position: absolute;
+  top: 2px;
+  right: -24px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.chat-a-text-wrapper:hover .chat-edit-btn {
+  opacity: 1;
+}
+
+.chat-edit-btn:hover {
+  color: var(--accent-light);
+}
+
+.chat-edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 260px;
+}
+
+.chat-edit-input {
+  background: var(--bg-card);
+  color: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: 14px 0 14px 14px;
+  padding: 7px 14px;
+  font-size: 0.88rem;
+  width: 100%;
+  outline: none;
+}
+
+.chat-edit-input:focus {
+  border-color: var(--accent-light);
+}
+
+.chat-edit-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.chat-edit-save,
+.chat-edit-cancel {
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chat-edit-save {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.chat-edit-save:hover {
+  background: var(--success);
+  color: white;
+}
+
+.chat-edit-cancel {
+  color: var(--text-secondary);
+}
+
+.chat-edit-cancel:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 /* Option buttons — appear inline in the message list, right-aligned */
 .chat-options-row {
   display: flex;
