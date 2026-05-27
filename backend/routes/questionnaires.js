@@ -4,14 +4,6 @@ const { authenticateToken, requireAdmin, optionalAuth } = require('../middleware
 
 const router = express.Router();
 
-// Helper to get recent 4 questionnaire IDs
-async function getRecentQuestionnaireIds() {
-  const recent = await db.prepare(`
-    SELECT id FROM questionnaires ORDER BY created_at DESC LIMIT 4
-  `).all();
-  return recent.map(q => q.id);
-}
-
 // Get public questionnaires (no auth required)
 router.get('/public', async (req, res) => {
   try {
@@ -75,20 +67,9 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get single questionnaire with questions and options
-// Uses optional auth - guests can access recent 4 questionnaires
+// Open to all users (no auth required)
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
-    const questionnaireId = parseInt(req.params.id);
-
-    // Check if this is one of the recent 4 questionnaires
-    const recentIds = await getRecentQuestionnaireIds();
-    const isRecent = recentIds.includes(questionnaireId);
-
-    // If not logged in and not a recent questionnaire, require auth
-    if (!req.user && !isRecent) {
-      return res.status(401).json({ error: 'Access token required' });
-    }
-
     const questionnaire = await db.prepare(`
       SELECT q.*, u.email as creator_email
       FROM questionnaires q
@@ -127,8 +108,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       questionnaire: {
         ...questionnaire,
         questions: questionsWithOptions,
-        totalPages: maxPage,
-        isRecent: isRecent
+        totalPages: maxPage
       }
     });
   } catch (error) {
