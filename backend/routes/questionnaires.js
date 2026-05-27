@@ -71,7 +71,8 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const questionnaire = await db.prepare(`
-      SELECT q.*, u.email as creator_email
+      SELECT q.*, u.email as creator_email,
+        COALESCE(q.ai_summary_enabled, 0) as ai_summary_enabled
       FROM questionnaires q
       JOIN users u ON q.created_by = u.id
       WHERE q.id = ?
