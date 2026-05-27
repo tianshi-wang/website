@@ -17,6 +17,12 @@ const JSON_EXAMPLE_FORM = `{
       "page_number": 1
     },
     {
+      "text": "Upload a photo of yourself (optional)",
+      "type": "text",
+      "page_number": 1,
+      "allow_image_upload": true
+    },
+    {
       "text": "What's your favorite sport?",
       "type": "single_choice",
       "page_number": 1,
@@ -52,6 +58,11 @@ const JSON_EXAMPLE_CHAT = `{
     {
       "text": "首先，请告诉我你的名字（或者你想被怎么称呼）？",
       "type": "text"
+    },
+    {
+      "text": "愿意分享一张你的照片吗？📷",
+      "type": "text",
+      "allow_image_upload": true
     },
     {
       "text": "你如何形容现在的自己？",
@@ -286,6 +297,10 @@ export default function CreateQuestionnaire() {
           .map(o => o.text);
       }
 
+      if (q.allow_image_upload) {
+        question.allow_image_upload = true;
+      }
+
       return question;
     }).filter(q => q.text.trim());
 
@@ -367,7 +382,8 @@ export default function CreateQuestionnaire() {
           type,
           page_number: q.page_number || 1,
           options,
-          show_if
+          show_if,
+          allow_image_upload: q.allow_image_upload || false
         };
       });
 
