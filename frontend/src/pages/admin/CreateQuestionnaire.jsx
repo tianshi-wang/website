@@ -82,7 +82,7 @@ export default function CreateQuestionnaire() {
   const fileInputRef = useRef(null);
 
   const [mode, setMode] = useState('manual'); // 'manual' or 'json'
-  const [jsonInput, setJsonInput] = useState('');
+  const [jsonInput, setJsonInput] = useState(JSON_EXAMPLE_CHAT); // Default to chat example
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [questionnaireLanguage, setQuestionnaireLanguage] = useState('zh');
@@ -250,10 +250,65 @@ export default function CreateQuestionnaire() {
     }));
   };
 
-  const [jsonExampleType, setJsonExampleType] = useState('form');
+  const [jsonExampleType, setJsonExampleType] = useState('chat');
+
+  // Convert current form data to JSON
+  const formToJson = () => {
+    const data = {
+      title: title || "未命名问卷",
+      description: description || "",
+      type: questionnaireType,
+      language: questionnaireLanguage,
+      ai_summary_enabled: aiSummaryEnabled,
+      ai_summary_prompt: aiSummaryPrompt || ""
+    };
+
+    if (questionnaireType === 'chat') {
+      data.narrative = narrative || "";
+    }
+
+    data.questions = questions.map(q => {
+      const question = {
+        text: q.text || "",
+        type: q.type,
+        page_number: q.page_number || 1
+      };
+
+      if (q.type !== 'text') {
+        question.options = q.options
+          .filter(o => o.text && o.text.trim())
+          .map(o => o.text);
+      }
+
+      return question;
+    }).filter(q => q.text.trim());
+
+    return JSON.stringify(data, null, 2);
+  };
 
   const loadExample = () => {
     setJsonInput(jsonExampleType === 'chat' ? JSON_EXAMPLE_CHAT : JSON_EXAMPLE_FORM);
+  };
+
+  // Auto-update JSON when example type changes
+  const handleExampleTypeChange = (newType) => {
+    setJsonExampleType(newType);
+    setJsonInput(newType === 'chat' ? JSON_EXAMPLE_CHAT : JSON_EXAMPLE_FORM);
+  };
+
+  // Handle mode switching
+  const handleModeChange = (newMode) => {
+    if (newMode === 'json' && mode === 'manual') {
+      // Switching to JSON mode: convert current form to JSON
+      const hasContent = title.trim() || questions.some(q => q.text.trim());
+      if (hasContent) {
+        setJsonInput(formToJson());
+      } else {
+        // No content, show example
+        setJsonInput(jsonExampleType === 'chat' ? JSON_EXAMPLE_CHAT : JSON_EXAMPLE_FORM);
+      }
+    }
+    setMode(newMode);
   };
 
   const parseJsonInput = () => {
@@ -444,14 +499,14 @@ export default function CreateQuestionnaire() {
         <button
           type="button"
           className={`mode-btn ${mode === 'manual' ? 'active' : ''}`}
-          onClick={() => setMode('manual')}
+          onClick={() => handleModeChange('manual')}
         >
           {t('admin.manualInput')}
         </button>
         <button
           type="button"
           className={`mode-btn ${mode === 'json' ? 'active' : ''}`}
-          onClick={() => setMode('json')}
+          onClick={() => handleModeChange('json')}
         >
           {t('admin.jsonImport')}
         </button>
@@ -515,7 +570,7 @@ export default function CreateQuestionnaire() {
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <select
                     value={jsonExampleType}
-                    onChange={(e) => setJsonExampleType(e.target.value)}
+                    onChange={(e) => handleExampleTypeChange(e.target.value)}
                     style={{ fontSize: '12px', padding: '2px 6px' }}
                   >
                     <option value="form">表单示例</option>
