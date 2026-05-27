@@ -30,6 +30,7 @@ export default function Chat() {
   const [userName, setUserName] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState([]); // For multiple choice
 
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -221,7 +222,9 @@ export default function Chat() {
   const questions = questionnaire.questions;
   const isDone = currentQuestionIndex >= questions.length;
   const currentQuestion = !isDone ? questions[currentQuestionIndex] : null;
-  const hasOptions = currentQuestion?.type === 'single_choice' && currentQuestion?.options?.length > 0;
+  const isSingleChoice = currentQuestion?.type === 'single_choice' && currentQuestion?.options?.length > 0;
+  const isMultipleChoice = currentQuestion?.type === 'multiple_choice' && currentQuestion?.options?.length > 0;
+  const hasOptions = isSingleChoice || isMultipleChoice;
 
   return (
     <div className="chat-page">
@@ -311,7 +314,7 @@ export default function Chat() {
           })}
 
           {/* Option buttons for current question — appear inline below the question */}
-          {hasOptions && (
+          {isSingleChoice && (
             <div className="chat-options-row">
               {currentQuestion.options.map((opt) => (
                 <button
@@ -322,6 +325,41 @@ export default function Chat() {
                   {opt.text}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Multiple choice checkboxes */}
+          {isMultipleChoice && (
+            <div className="chat-options-col">
+              {currentQuestion.options.map((opt) => (
+                <label key={opt.id} className="chat-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={selectedOptions.includes(opt.text)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedOptions([...selectedOptions, opt.text]);
+                      } else {
+                        setSelectedOptions(selectedOptions.filter(o => o !== opt.text));
+                      }
+                    }}
+                  />
+                  <span>{opt.text}</span>
+                </label>
+              ))}
+              <button
+                className="chat-multi-submit"
+                onClick={() => {
+                  const answer = selectedOptions.length > 0
+                    ? selectedOptions.join(', ')
+                    : '未选择';
+                  submitAnswer(answer);
+                  setSelectedOptions([]);
+                }}
+                disabled={selectedOptions.length === 0}
+              >
+                确认选择 {selectedOptions.length > 0 && `(${selectedOptions.length})`}
+              </button>
             </div>
           )}
 
