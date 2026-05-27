@@ -351,7 +351,7 @@ export default function Chat() {
                 className="chat-multi-submit"
                 onClick={() => {
                   const answer = selectedOptions.length > 0
-                    ? selectedOptions.join(', ')
+                    ? selectedOptions.join('\n')
                     : '未选择';
                   submitAnswer(answer);
                   setSelectedOptions([]);
