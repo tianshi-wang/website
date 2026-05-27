@@ -31,9 +31,12 @@ export default function Chat() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [selectedOptions, setSelectedOptions] = useState([]); // For multiple choice
+  const [uploadedImage, setUploadedImage] = useState(null); // For image upload
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => { fetchQuestionnaire(); }, [id]);
 
@@ -145,6 +148,66 @@ export default function Chat() {
 
   const handleSkip = () => {
     submitAnswer('', true);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('请选择图片文件');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('图片太大，请选择小于5MB的图片');
+      return;
+    }
+
+    setUploadingImage(true);
+    setError('');
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target.result;
+
+        const res = await fetch('/api/upload/response-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64 })
+        });
+
+        if (!res.ok) {
+          throw new Error('上传失败');
+        }
+
+        const data = await res.json();
+        setUploadedImage(data.url);
+        setUploadingImage(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setError(err.message);
+      setUploadingImage(false);
+    }
+  };
+
+  const removeUploadedImage = () => {
+    setUploadedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const submitImageAnswer = () => {
+    if (uploadedImage) {
+      submitAnswer(`[图片] ${uploadedImage}`);
+      setUploadedImage(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -294,15 +357,25 @@ export default function Chat() {
                     ) : (
                       <div className="chat-a-text-wrapper">
                         <div className={`chat-a-text ${item.isSkipped ? 'skipped' : ''}`}>
-                          {item.text}
+                          {item.text.startsWith('[图片]') ? (
+                            <img
+                              src={item.text.replace('[图片] ', '')}
+                              alt="用户上传"
+                              className="chat-uploaded-image"
+                            />
+                          ) : (
+                            item.text
+                          )}
                         </div>
-                        <button
-                          className="chat-edit-btn"
-                          onClick={() => startEditing(idx, item.text)}
-                          title="编辑"
-                        >
-                          ✎
-                        </button>
+                        {!item.text.startsWith('[图片]') && (
+                          <button
+                            className="chat-edit-btn"
+                            onClick={() => startEditing(idx, item.text)}
+                            title="编辑"
+                          >
+                            ✎
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -381,30 +454,64 @@ export default function Chat() {
         ) : !hasOptions ? (
           // Only show input + skip for text questions
           <>
-            <div className="chat-bar-row">
-              <input
-                ref={inputRef}
-                type="text"
-                className="chat-bar-input"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="输入答案..."
-              />
-              <button
-                className="chat-bar-send"
-                onClick={() => submitAnswer(inputValue)}
-                disabled={!inputValue.trim()}
-              >
-                →
-              </button>
-            </div>
-            <button
-              className="chat-skip-btn"
-              onClick={handleSkip}
-            >
-              跳过这题
-            </button>
+            {uploadedImage ? (
+              // Show uploaded image preview
+              <div className="chat-image-preview-container">
+                <img src={uploadedImage} alt="预览" className="chat-image-preview" />
+                <div className="chat-image-actions">
+                  <button className="chat-image-remove" onClick={removeUploadedImage}>
+                    删除
+                  </button>
+                  <button className="chat-image-submit" onClick={submitImageAnswer}>
+                    发送图片
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="chat-bar-row">
+                  <button
+                    className="chat-upload-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    title="上传图片"
+                  >
+                    📷
+                  </button>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    className="chat-bar-input"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={uploadingImage ? "上传中..." : "输入答案..."}
+                    disabled={uploadingImage}
+                  />
+                  <button
+                    className="chat-bar-send"
+                    onClick={() => submitAnswer(inputValue)}
+                    disabled={!inputValue.trim() || uploadingImage}
+                  >
+                    →
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+                <button
+                  className="chat-skip-btn"
+                  onClick={handleSkip}
+                >
+                  跳过这题
+                </button>
+              </>
+            )}
           </>
         ) : null}
       </div>

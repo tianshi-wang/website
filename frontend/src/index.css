@@ -1681,6 +1681,89 @@ body {
   color: var(--text-secondary);
 }
 
+/* Image upload button */
+.chat-upload-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  width: 42px;
+  height: 38px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.chat-upload-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.chat-upload-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Image preview in input bar */
+.chat-image-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.chat-image-preview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.chat-image-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.chat-image-remove,
+.chat-image-submit {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+}
+
+.chat-image-remove {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+}
+
+.chat-image-remove:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.chat-image-submit {
+  background: var(--accent);
+  color: white;
+  font-weight: 500;
+}
+
+.chat-image-submit:hover {
+  background: var(--accent-dark);
+}
+
+/* Uploaded image in chat bubble */
+.chat-uploaded-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+}
+
 /* Summary pages — reuse chat message layout */
 .chat-summary-page {
   max-width: 680px;
