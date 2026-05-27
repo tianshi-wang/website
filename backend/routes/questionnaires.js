@@ -147,14 +147,15 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       for (let idx = 0; idx < questions.length; idx++) {
         const question = questions[idx];
         const questionResult = await txDb.prepare(`
-          INSERT INTO questions (questionnaire_id, text, type, page_number, order_num)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO questions (questionnaire_id, text, type, page_number, order_num, allow_image_upload)
+          VALUES (?, ?, ?, ?, ?, ?)
         `).run(
           questionnaireId,
           question.text,
           question.type,
           question.page_number || 1,
-          question.order_num || idx
+          question.order_num || idx,
+          question.allow_image_upload ? 1 : 0
         );
 
         const questionId = questionResult.lastInsertRowid;
@@ -247,13 +248,14 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
           // Update existing question
           await txDb.prepare(`
             UPDATE questions
-            SET text = ?, type = ?, page_number = ?, order_num = ?
+            SET text = ?, type = ?, page_number = ?, order_num = ?, allow_image_upload = ?
             WHERE id = ?
           `).run(
             question.text,
             question.type,
             question.page_number || 1,
             question.order_num || idx,
+            question.allow_image_upload ? 1 : 0,
             existingQuestion.id
           );
 
@@ -273,14 +275,15 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
         } else {
           // Create new question
           const questionResult = await txDb.prepare(`
-            INSERT INTO questions (questionnaire_id, text, type, page_number, order_num)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO questions (questionnaire_id, text, type, page_number, order_num, allow_image_upload)
+            VALUES (?, ?, ?, ?, ?, ?)
           `).run(
             questionnaireId,
             question.text,
             question.type,
             question.page_number || 1,
-            question.order_num || idx
+            question.order_num || idx,
+            question.allow_image_upload ? 1 : 0
           );
 
           const questionId = questionResult.lastInsertRowid;

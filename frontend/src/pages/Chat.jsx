@@ -470,14 +470,16 @@ export default function Chat() {
             ) : (
               <>
                 <div className="chat-bar-row">
-                  <button
-                    className="chat-upload-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    title="上传图片"
-                  >
-                    📷
-                  </button>
+                  {currentQuestion?.allow_image_upload && (
+                    <button
+                      className="chat-upload-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      title="上传图片"
+                    >
+                      📷
+                    </button>
+                  )}
                   <input
                     ref={inputRef}
                     type="text"
@@ -495,14 +497,15 @@ export default function Chat() {
                   >
                     →
                   </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                  />
+                  {currentQuestion?.allow_image_upload && (
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      style={{ display: 'none' }}
+                    />
+                  )}
                 </div>
                 <button
                   className="chat-skip-btn"

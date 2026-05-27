@@ -136,6 +136,7 @@ export default function CreateQuestionnaire() {
         text: question.text,
         type: question.type,
         page_number: question.page_number,
+        allow_image_upload: question.allow_image_upload === 1 || question.allow_image_upload === true,
         options: question.options ? question.options.map(opt => ({ text: opt.text })) : []
       }));
 
@@ -727,6 +728,21 @@ export default function CreateQuestionnaire() {
                       </select>
                     </div>
                   </div>
+
+                  {question.type === 'text' && (
+                    <div className="form-group">
+                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={question.allow_image_upload || false}
+                          onChange={(e) => updateQuestion(qIndex, 'allow_image_upload', e.target.checked)}
+                          style={{ marginRight: '8px' }}
+                        />
+                        允许上传图片 📷
+                      </label>
+                      <small className="form-hint">用户可以上传照片或自拍作为答案</small>
+                    </div>
+                  )}
 
                   {question.type !== 'text' && (
                     <div className="form-group">
