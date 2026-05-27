@@ -160,6 +160,9 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 
       const questionnaireId = qResult.lastInsertRowid;
 
+      // Track question IDs for conditional logic
+      const createdQuestionIds = [];
+
       // Create questions and options
       for (let idx = 0; idx < questions.length; idx++) {
         const question = questions[idx];
@@ -175,6 +178,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
         );
 
         const questionId = questionResult.lastInsertRowid;
+        createdQuestionIds.push(questionId);
 
         // Create options if choice question
         if (question.type !== 'text' && question.options) {
@@ -185,6 +189,21 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
               VALUES (?, ?, ?)
             `).run(questionId, option.text, option.order_num || optIdx);
           }
+        }
+      }
+
+      // Update conditional questions with show_if logic
+      for (let idx = 0; idx < questions.length; idx++) {
+        const question = questions[idx];
+        if (question.show_if) {
+          const targetQuestionId = createdQuestionIds[question.show_if.question_index];
+          const currentQuestionId = createdQuestionIds[idx];
+
+          await txDb.prepare(`
+            UPDATE questions
+            SET show_if_question_id = ?, show_if_answer = ?
+            WHERE id = ?
+          `).run(targetQuestionId, question.show_if.answer, currentQuestionId);
         }
       }
 

@@ -1378,6 +1378,12 @@ body {
   text-align: left;
 }
 
+.chat-a-text.skipped {
+  opacity: 0.5;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
 .chat-a-text-wrapper {
   position: relative;
   display: inline-block;
@@ -1584,6 +1590,25 @@ body {
   color: var(--accent);
   font-size: 0.82rem;
   margin-bottom: 6px;
+}
+
+.chat-skip-btn {
+  width: 100%;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: var(--transition);
+}
+
+.chat-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-secondary);
 }
 
 /* Summary pages — reuse chat message layout */

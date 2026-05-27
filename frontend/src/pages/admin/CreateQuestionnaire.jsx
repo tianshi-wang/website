@@ -17,10 +17,19 @@ const JSON_EXAMPLE_FORM = `{
       "page_number": 1
     },
     {
-      "text": "How old are you?",
+      "text": "What's your favorite sport?",
       "type": "single_choice",
       "page_number": 1,
-      "options": ["Under 18", "18-25", "26-35", "36+"]
+      "options": ["Running", "Swimming", "Gym", "Don't like sports"]
+    },
+    {
+      "text": "💭 How often do you run?",
+      "type": "text",
+      "page_number": 1,
+      "show_if": {
+        "question_index": 1,
+        "answer": "Running"
+      }
     },
     {
       "text": "Select your interests",
@@ -48,6 +57,14 @@ const JSON_EXAMPLE_CHAT = `{
       "text": "你如何形容现在的自己？",
       "type": "single_choice",
       "options": ["自信而清醒", "仍在探索", "随遇而安", "说不清楚"]
+    },
+    {
+      "text": "💭 能详细说说你在探索什么吗？",
+      "type": "text",
+      "show_if": {
+        "question_index": 1,
+        "answer": "仍在探索"
+      }
     },
     {
       "text": "是什么让你来到这里？",
@@ -269,11 +286,27 @@ export default function CreateQuestionnaire() {
           options = q.options.map(opt => ({ text: typeof opt === 'string' ? opt : opt.text }));
         }
 
+        // Handle conditional logic
+        let show_if = null;
+        if (q.show_if) {
+          if (typeof q.show_if.question_index !== 'number' || !q.show_if.answer) {
+            throw new Error(`Question ${idx + 1}: Invalid show_if format. Need {question_index: number, answer: string}`);
+          }
+          if (q.show_if.question_index >= idx) {
+            throw new Error(`Question ${idx + 1}: show_if.question_index must reference an earlier question`);
+          }
+          show_if = {
+            question_index: q.show_if.question_index,
+            answer: q.show_if.answer
+          };
+        }
+
         return {
           text: q.text,
           type,
           page_number: q.page_number || 1,
-          options
+          options,
+          show_if
         };
       });
 

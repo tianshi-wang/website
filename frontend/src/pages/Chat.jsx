@@ -73,9 +73,39 @@ export default function Chat() {
     }
   };
 
-  const submitAnswer = (answerText) => {
-    const trimmed = answerText.trim();
-    if (!trimmed) return;
+  // Find next question that should be shown based on conditional logic
+  const findNextQuestion = (startIndex, currentAnswers) => {
+    const questions = questionnaire.questions;
+
+    for (let i = startIndex; i < questions.length; i++) {
+      const q = questions[i];
+
+      // If no condition, show this question
+      if (!q.show_if_question_id || !q.show_if_answer) {
+        return i;
+      }
+
+      // Check if condition is met
+      const conditionAnswer = currentAnswers[q.show_if_question_id];
+      console.log('Checking conditional Q:', i, q.text);
+      console.log('  Depends on Q ID:', q.show_if_question_id);
+      console.log('  Required answer:', q.show_if_answer);
+      console.log('  Actual answer:', conditionAnswer);
+      console.log('  Match:', conditionAnswer === q.show_if_answer);
+
+      if (conditionAnswer === q.show_if_answer) {
+        return i;
+      }
+
+      // Condition not met, continue to next question
+    }
+
+    return questions.length; // No more questions
+  };
+
+  const submitAnswer = (answerText, isSkipped = false) => {
+    const trimmed = isSkipped ? '跳过' : answerText.trim();
+    if (!trimmed && !isSkipped) return;
 
     const questions = questionnaire.questions;
     const question = questions[currentQuestionIndex];
@@ -84,15 +114,23 @@ export default function Chat() {
     setAnswers(newAnswers);
 
     const isFirstQuestion = currentQuestionIndex === 0;
-    const displayName = isFirstQuestion ? trimmed : userName;
-    if (isFirstQuestion) setUserName(trimmed);
+    const displayName = isFirstQuestion && !isSkipped ? trimmed : userName;
+    if (isFirstQuestion && !isSkipped) setUserName(trimmed);
 
     const newHistory = [
       ...history,
-      { type: 'a', text: trimmed, name: displayName, questionId: question.id }
+      {
+        type: 'a',
+        text: isSkipped ? '跳过' : trimmed,
+        name: displayName || '匿名',
+        questionId: question.id,
+        isSkipped
+      }
     ];
 
-    const nextIndex = currentQuestionIndex + 1;
+    // Find next question based on conditional logic
+    const nextIndex = findNextQuestion(currentQuestionIndex + 1, newAnswers);
+
     if (nextIndex < questions.length) {
       newHistory.push({ type: 'q', text: questions[nextIndex].text });
       setCurrentQuestionIndex(nextIndex);
@@ -102,6 +140,10 @@ export default function Chat() {
 
     setHistory(newHistory);
     setInputValue('');
+  };
+
+  const handleSkip = () => {
+    submitAnswer('', true);
   };
 
   const handleKeyDown = (e) => {
@@ -248,7 +290,9 @@ export default function Chat() {
                       </div>
                     ) : (
                       <div className="chat-a-text-wrapper">
-                        <div className="chat-a-text">{item.text}</div>
+                        <div className={`chat-a-text ${item.isSkipped ? 'skipped' : ''}`}>
+                          {item.text}
+                        </div>
                         <button
                           className="chat-edit-btn"
                           onClick={() => startEditing(idx, item.text)}
@@ -296,26 +340,35 @@ export default function Chat() {
           >
             {submitting ? '提交中...' : '提交答案'}
           </button>
-        ) : (
-          <div className="chat-bar-row">
-            <input
-              ref={inputRef}
-              type="text"
-              className="chat-bar-input"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="输入答案..."
-            />
+        ) : !hasOptions ? (
+          // Only show input + skip for text questions
+          <>
+            <div className="chat-bar-row">
+              <input
+                ref={inputRef}
+                type="text"
+                className="chat-bar-input"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="输入答案..."
+              />
+              <button
+                className="chat-bar-send"
+                onClick={() => submitAnswer(inputValue)}
+                disabled={!inputValue.trim()}
+              >
+                →
+              </button>
+            </div>
             <button
-              className="chat-bar-send"
-              onClick={() => submitAnswer(inputValue)}
-              disabled={!inputValue.trim()}
+              className="chat-skip-btn"
+              onClick={handleSkip}
             >
-              →
+              跳过这题
             </button>
-          </div>
-        )}
+          </>
+        ) : null}
       </div>
     </div>
   );
