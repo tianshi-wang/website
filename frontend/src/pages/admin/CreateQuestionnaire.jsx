@@ -67,6 +67,11 @@ const JSON_EXAMPLE_CHAT = `{
       }
     },
     {
+      "text": "你希望获得什么样的支持？（可多选）",
+      "type": "multiple_choice",
+      "options": ["倾听理解", "实用建议", "陪伴鼓励", "专业指导"]
+    },
+    {
       "text": "是什么让你来到这里？",
       "type": "text"
     }
